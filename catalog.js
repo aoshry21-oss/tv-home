@@ -34,7 +34,7 @@ window.HOME_CATALOG = [
 // `place` is looked up once and the coordinates remembered. Put your own town here.
 // Set lat/lon directly to skip the lookup, or clear `place` to hide the weather entirely.
 // units: 'fahrenheit' or 'celsius'.
-window.HOME_WEATHER = { place: 'Newark', units: 'fahrenheit' };
+window.HOME_WEATHER = { place: 'Manhattan', units: 'fahrenheit' };
 
 // Your name for the greeting. Leave empty for just "Good evening".
 window.HOME_NAME = 'Aaron';

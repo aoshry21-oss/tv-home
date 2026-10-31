@@ -273,10 +273,33 @@
     $('focusSub').textContent = sub;
   }
 
+  // index.html ships inside the .wgt, so the pills' markup can't change without a reinstall.
+  // Their contents get rebuilt here instead: a real icon in place of the old grey dot.
+  var PILL_ICONS = [
+    '<svg class="pill-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M2 8.5a15 15 0 0 1 20 0" /><path d="M5.5 12.5a10 10 0 0 1 13 0" />' +
+      '<path d="M9 16.5a5 5 0 0 1 6 0" /><circle cx="12" cy="20" r="1.6" class="sld" /></svg>',
+    '<svg class="pill-ico" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<rect x="3" y="3" width="7.2" height="7.2" rx="2" /><rect x="13.8" y="3" width="7.2" height="7.2" rx="2" />' +
+      '<rect x="3" y="13.8" width="7.2" height="7.2" rx="2" /><rect x="13.8" y="13.8" width="7.2" height="7.2" rx="2" /></svg>'
+  ];
+  var pillsBuilt = false;
+
+  function buildPills() {
+    if (pillsBuilt) return;
+    var pills = $('pills').children, i;
+    for (i = 0; i < pills.length; i++) {
+      var label = (pills[i].textContent || '').replace(/^\s+|\s+$/g, '');
+      pills[i].innerHTML = (PILL_ICONS[i] || '') + '<span class="pill-label">' + escapeHtml(label) + '</span>';
+    }
+    pillsBuilt = true;
+  }
+
   function renderPills() {
+    buildPills();
     var pills = $('pills').children;
     for (var i = 0; i < pills.length; i++) {
-      pills[i].className = 'pill' + (!state.overlay && state.zone === 'top' && state.topIndex === i ? ' focused' : '');
+      pills[i].className = 'pill p' + i + (!state.overlay && state.zone === 'top' && state.topIndex === i ? ' focused' : '');
     }
   }
 
@@ -547,16 +570,33 @@
     return 'cloud';
   }
 
-  var WX_WORD = { clear: 'Clear', partly: 'Partly cloudy', cloud: 'Cloudy', fog: 'Fog',
-                  drizzle: 'Drizzle', rain: 'Rain', snow: 'Snow', storm: 'Thunderstorms' };
+  // Kept short on purpose: this chip lives between the clock and the pills, and a long word
+  // widens it in both directions until it collides with them.
+  var WX_WORD = { clear: 'Clear', partly: 'Partly Sun', cloud: 'Cloudy', fog: 'Fog',
+                  drizzle: 'Drizzle', rain: 'Rain', snow: 'Snow', storm: 'Storms' };
+
+  // A sun with rays, built in a loop so the spokes stay evenly spaced.
+  function sunHtml(cx, cy, r, rays) {
+    var out = '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 4) + '" fill="#ffd255" opacity=".20"/>' +
+              '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#ffd255"/>';
+    if (!rays) return out;
+    var i, a, x1, y1, x2, y2;
+    for (i = 0; i < 8; i++) {
+      a = i * Math.PI / 4;
+      x1 = cx + Math.cos(a) * (r + 5.5); y1 = cy + Math.sin(a) * (r + 5.5);
+      x2 = cx + Math.cos(a) * (r + 10);  y2 = cy + Math.sin(a) * (r + 10);
+      out += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) +
+             '" y2="' + y2.toFixed(1) + '" stroke="#ffd255" stroke-width="3.2" stroke-linecap="round"/>';
+    }
+    return out;
+  }
 
   function wxIcon(kind, isDay) {
-    var s = '<svg class="wx-svg" viewBox="0 0 48 48" width="46" height="46" aria-hidden="true">';
-    var sun = '<circle cx="18" cy="18" r="9" fill="#ffc266"/>';
-    var moon = '<path d="M26 8a12 12 0 1 0 12 12 9 9 0 0 1-12-12z" fill="#e8ddc4"/>';
+    var s = '<svg class="wx-svg" viewBox="0 0 48 48" aria-hidden="true">';
+    var moon = '<path d="M26 8a12 12 0 1 0 12 12 9 9 0 0 1-12-12z" fill="#f2e7cd"/>';
     var cloud = '<path d="M14 36h20a7 7 0 0 0 .6-14A10 10 0 0 0 15 24a6 6 0 0 0-1 12z" fill="#dfe8ea"/>';
-    if (kind === 'clear') return s + (isDay ? sun : moon) + '</svg>';
-    if (kind === 'partly') return s + (isDay ? '<circle cx="17" cy="16" r="8" fill="#ffc266"/>' : moon) + cloud + '</svg>';
+    if (kind === 'clear') return s + (isDay ? sunHtml(24, 23, 11, true) : moon) + '</svg>';
+    if (kind === 'partly') return s + (isDay ? sunHtml(17, 15, 8, true) : moon) + cloud + '</svg>';
     if (kind === 'fog') return s + cloud + '<g stroke="#b9c7c9" stroke-width="3" stroke-linecap="round">' +
       '<path d="M10 41h28"/><path d="M15 46h20"/></g></svg>';
     if (kind === 'drizzle' || kind === 'rain') {
@@ -573,12 +613,12 @@
   function wxNode() {
     var el = $('weather');
     if (el) return el;
-    var block = document.querySelector('.time-block');
-    if (!block) return null;
+    var stage = $('stage');
+    if (!stage) return null;
     el = document.createElement('div');
     el.id = 'weather';
     el.className = 'weather';
-    block.appendChild(el);
+    stage.appendChild(el);
     return el;
   }
 
@@ -588,8 +628,7 @@
     var kind = wxKind(w.code);
     el.innerHTML = wxIcon(kind, w.isDay !== 0) +
       '<div class="wx-text"><div class="wx-temp">' + Math.round(w.temp) + '&deg;</div>' +
-      '<div class="wx-word">' + escapeHtml(WX_WORD[kind] || '') +
-      (w.place ? ' &nbsp;·&nbsp; ' + escapeHtml(w.place) : '') + '</div></div>';
+      '<div class="wx-word">' + escapeHtml(WX_WORD[kind] || '') + '</div></div>';
   }
 
   function getJson(url, cb) {
@@ -657,6 +696,35 @@
     }
   }
 
+  // Gradient-filled text needs -webkit-background-clip, and the fallback when it is missing is
+  // invisible text, so the clock only opts in once the engine confirms support.
+  function detectGradientText() {
+    var ok = false;
+    try {
+      ok = !!(window.CSS && window.CSS.supports &&
+              (window.CSS.supports('-webkit-background-clip', 'text') ||
+               window.CSS.supports('background-clip', 'text')));
+    } catch (e) { ok = false; }
+    if (ok) {
+      var h = document.documentElement;
+      h.className = h.className ? h.className + ' gradient-text' : 'gradient-text';
+    }
+  }
+
+  // The clock's face comes from fonts.js as a data URI, for the same CSP reason as the backdrop.
+  function applyFont() {
+    var f = window.HOME_FONT;
+    if (!f || !f.clock) return;
+    var el = document.createElement('style');
+    el.type = 'text/css';
+    el.appendChild(document.createTextNode(
+      "@font-face{font-family:'ClockFace';font-style:normal;font-weight:400;" +
+      "src:url(" + f.clock + ") format('woff2');}"));
+    document.getElementsByTagName('head')[0].appendChild(el);
+    var h = document.documentElement;
+    h.className = h.className ? h.className + ' has-clockface' : 'has-clockface';
+  }
+
   // The backdrop is a data URI from theme.js; the TV's CSP will not load one over https.
   function applyTheme() {
     var t = window.HOME_THEME;
@@ -670,6 +738,7 @@
     if (!document.hidden) { tick(); discover(); refreshWeather(); }
   });
   registerKeys();
+  applyFont();
   applyTheme();
   startWeather();
   tick();

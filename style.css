@@ -13,6 +13,12 @@
   --beige-faint: rgba(239, 228, 210, 0.10);
   --brass: #c9a27a;
   --tile: #221912;
+  /* Neon pulled from the signs in the backdrop. */
+  --neon-cyan: #39e0ff;
+  --neon-pink: #ff4d9d;
+  --neon-lime: #b6ff3d;
+  --neon-amber: #ffb347;
+  --warm-white: #fff6e8;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -50,37 +56,71 @@ html, body {
 /* ---------- Top: clock + pills ---------- */
 .top {
   position: absolute;
-  left: 120px; right: 120px; top: 92px;
+  left: 120px; right: 120px; top: 92px; z-index: 2;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
 }
-.greeting { font-size: 34px; font-weight: 300; color: var(--beige-dim); letter-spacing: 0.5px; }
-.clock { font-size: 196px; font-weight: 200; line-height: 1; letter-spacing: -4px; margin-top: 10px; margin-left: -6px; }
-.date { font-size: 34px; font-weight: 300; color: var(--beige-dim); margin-top: 14px; }
+.greeting {
+  font-size: 32px; font-weight: 400; color: var(--neon-cyan);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  text-shadow: 0 0 22px rgba(57, 224, 255, 0.55);
+}
+.clock {
+  font-size: 222px; font-weight: 400; line-height: 0.9;
+  letter-spacing: -2px; margin: 14px 0 0 -4px;
+  color: #fff3dc;
+  text-shadow:
+    3px 3px 0 #d4751c, 6px 6px 0 #bb5c16, 9px 9px 0 #a04812,
+    12px 12px 0 #7e340e, 15px 15px 0 #5a230b,
+    0 20px 50px rgba(0, 0, 0, 0.75);
+}
+/* The display face is injected by app.js once fonts.js has loaded; until then the clock just
+   uses Outfit, which is why the size and spacing are set on .clock and not only here. */
+.has-clockface .clock {
+  font-family: 'ClockFace', 'Outfit', sans-serif;
+  letter-spacing: 1px;
+  -webkit-text-stroke: 2px #3d1a08;
+}
+.date {
+  font-size: 30px; font-weight: 400; color: var(--neon-amber);
+  letter-spacing: 0.16em; text-transform: uppercase; margin-top: 12px;
+  text-shadow: 0 0 20px rgba(255, 179, 71, 0.45);
+}
 
-.pills { display: flex; margin-top: 8px; }
+.pills { display: flex; margin-top: 10px; }
 .pill {
   display: flex; align-items: center;
-  height: 64px; padding: 0 30px;
-  margin-left: 18px;
-  border-radius: 32px;
-  background: rgba(239, 228, 210, 0.06);
-  border: 1px solid var(--beige-faint);
-  font-size: 26px; font-weight: 400; color: var(--beige);
+  height: 76px; padding: 0 36px; margin-left: 20px;
+  border-radius: 38px;
+  background: rgba(6, 10, 14, 0.52);
+  border: 2px solid rgba(255, 246, 232, 0.22);
+  font-size: 28px; font-weight: 400; color: var(--warm-white);
   -webkit-transition: -webkit-transform 160ms ease-out, background-color 160ms ease-out, color 160ms ease-out;
   transition: transform 160ms ease-out, background-color 160ms ease-out, color 160ms ease-out;
 }
-.pill-dot { width: 10px; height: 10px; border-radius: 5px; background: var(--brass); margin-right: 14px; }
-.pill.focused { background: var(--beige); color: #1a120d; -webkit-transform: scale(1.06); transform: scale(1.06); }
-.pill.focused .pill-dot { background: #8a5a36; }
+.pill-ico { width: 30px; height: 30px; margin-right: 15px; flex: 0 0 auto;
+  fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; }
+.pill-ico .sld { fill: currentColor; stroke: none; }
+.pill-label { white-space: nowrap; }
+.pill.p0 { border-color: rgba(57, 224, 255, 0.55); color: var(--neon-cyan);
+  box-shadow: 0 0 26px rgba(57, 224, 255, 0.18); }
+.pill.p1 { border-color: rgba(182, 255, 61, 0.55); color: var(--neon-lime);
+  box-shadow: 0 0 26px rgba(182, 255, 61, 0.18); }
+.pill.focused { -webkit-transform: scale(1.07); transform: scale(1.07); color: #06131a; }
+.pill.p0.focused { background: var(--neon-cyan); border-color: #d9f7ff;
+  box-shadow: 0 0 46px rgba(57, 224, 255, 0.75); }
+.pill.p1.focused { background: var(--neon-lime); border-color: #f0ffd4;
+  box-shadow: 0 0 46px rgba(182, 255, 61, 0.70); }
 
 /* ---------- Bottom: walnut shelf + dock ---------- */
 .shelf-area { position: absolute; left: 0; right: 0; bottom: 64px; }
 
 .focus-label { padding: 0 120px; height: 120px; }
 .focus-name { font-size: 64px; font-weight: 300; letter-spacing: -0.5px; }
-.focus-sub { font-size: 26px; font-weight: 300; color: var(--brass); margin-top: 2px; height: 34px; }
+.focus-sub { font-size: 26px; font-weight: 400; color: var(--neon-pink);
+  letter-spacing: 0.14em; text-transform: uppercase; margin-top: 4px; height: 34px;
+  text-shadow: 0 0 20px rgba(255, 77, 157, 0.45); }
 
 .shelf {
   margin: 18px 96px 0;
@@ -228,8 +268,21 @@ html, body {
 }
 
 /* ---------- Live weather (the node is built by app.js, not index.html) ---------- */
-.weather { display: flex; align-items: center; margin-top: 22px; }
-.wx-svg { display: block; margin-right: 16px; }
+.weather {
+  position: absolute; left: 50%; top: 96px; z-index: 3;
+  -webkit-transform: translateX(-50%); transform: translateX(-50%);
+  display: -webkit-box; display: flex; align-items: center;
+  padding: 18px 40px 18px 28px;
+  border-radius: 44px;
+  background: rgba(6, 10, 14, 0.62);
+  border: 2px solid rgba(255, 210, 85, 0.50);
+  box-shadow: 0 0 44px rgba(255, 210, 85, 0.22), 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+.wx-svg { display: block; width: 86px; height: 86px; margin-right: 22px; flex: 0 0 auto;
+  -webkit-filter: drop-shadow(0 0 16px rgba(255, 210, 85, 0.55));
+  filter: drop-shadow(0 0 16px rgba(255, 210, 85, 0.55)); }
 .wx-text { line-height: 1.1; }
-.wx-temp { font-size: 52px; font-weight: 200; letter-spacing: -1px; }
-.wx-word { font-size: 24px; font-weight: 300; color: var(--beige-dim); margin-top: 2px; }
+.wx-temp { font-size: 76px; font-weight: 200; letter-spacing: -2px;
+  color: #fff3dc; line-height: 0.92; }
+.wx-word { font-size: 24px; font-weight: 400; color: #ffd255;
+  letter-spacing: 0.13em; text-transform: uppercase; margin-top: 7px; white-space: nowrap; }
