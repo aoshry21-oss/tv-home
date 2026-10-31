@@ -1,0 +1,9 @@
+# Nothing from the signing toolchain belongs in this repo. It is public.
+tools/
+*.p12
+*.pem
+*.key
+*.pw
+*.wgt
+author-signature.xml
+signature1.xml
