@@ -860,3 +860,205 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .tile, .tile-glass, .tile-logo { -webkit-transition: none !important; transition: none !important; }
 }
+/* ============================================================================
+   v2.2 — from the photographs of the real set.
+
+   Three things the panel showed that the code never could: the clock read as a
+   flat black card, the weather sign was too small to read from the sofa, and
+   every home widget stayed on screen behind All Apps. All three are below.
+   ============================================================================ */
+
+/* ---------- one screen at a time ----------------------------------------- */
+/* Driven by a screen name on <html> from app.js. The home furniture is removed
+   from the page, not merely covered, so nothing behind a menu can take focus. */
+.screen-menu .top, .screen-menu .date, .screen-menu .weather, .screen-menu .shelf-area,
+.screen-apps .top, .screen-apps .date, .screen-apps .weather, .screen-apps .shelf-area,
+.screen-wifi .top, .screen-wifi .date, .screen-wifi .weather, .screen-wifi .shelf-area,
+.screen-wifiForm .top, .screen-wifiForm .date, .screen-wifiForm .weather, .screen-wifiForm .shelf-area {
+  display: none !important;
+}
+/* The artwork stays; it just sits back so a panel reads cleanly over it. */
+.screen-apps #stage:after, .screen-wifi #stage:after, .screen-wifiForm #stage:after,
+.screen-menu #stage:after { opacity: 0; }
+.overlay { background: rgba(6, 10, 18, 0.72); }
+
+/* ---------- the clock, rebuilt as a salvaged station sign ----------------- */
+.top { top: 64px; left: 92px; right: 92px; display: block; }
+.time-block {
+  position: relative; display: inline-block;
+  padding: 14px 42px 12px;
+  border-radius: 20px;
+  border: 7px solid transparent;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  /* Interior enamel, then a brass gradient in the border box. The extra stops are
+     what stop it reading as a flat yellow outline on the panel. */
+  background-image:
+    linear-gradient(177deg, #2a2018 0%, #19120c 48%, #241a12 100%),
+    linear-gradient(150deg, #f6d79b 0%, #c4913f 14%, #80561f 34%, #e2b163 56%, #7a5020 76%, #d7aa5f 90%, #6d4418 100%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 233, 183, 0.20),
+    inset 0 -22px 40px rgba(0, 0, 0, 0.60),
+    0 0 40px rgba(255, 193, 94, 0.12),
+    0 18px 40px rgba(0, 0, 0, 0.66);
+}
+/* a worn highlight running along the top of the frame */
+.time-block:before, .wx-sign:before {
+  content: ''; position: absolute; left: 10%; right: 10%; top: -4px; height: 3px;
+  border-radius: 2px; background: linear-gradient(90deg,
+    rgba(255,233,183,0) 0%, rgba(255,233,183,.55) 28%, rgba(255,233,183,.15) 60%, rgba(255,233,183,0) 100%);
+}
+.time-block:after, .wx-sign:after { display: none; }
+
+.clock {
+  font-size: 132px; font-weight: 400; line-height: 1.0;
+  letter-spacing: 1px; margin: 0;
+  color: #fdebc8;
+  text-shadow:
+    0 2px 0 #b4802f, 0 4px 0 #7d5620,
+    0 6px 14px rgba(0, 0, 0, 0.85),
+    0 0 34px rgba(255, 199, 109, 0.22);
+}
+.has-clockface .clock { font-family: 'ClockFace', 'Outfit', sans-serif; -webkit-text-stroke: 0; }
+.clock .meridiem {
+  font-family: 'Outfit', sans-serif;
+  font-size: 32px; font-weight: 400; letter-spacing: 0.14em;
+  color: #e3b36c; vertical-align: super; margin-left: 12px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+/* the date is now its own smaller plaque, hung under the clock */
+.date {
+  position: relative; display: inline-block;
+  margin: 12px 0 0 14px; padding: 9px 26px;
+  font-size: 21px; font-weight: 400; color: #e8c489;
+  letter-spacing: 0.24em; text-transform: uppercase;
+  border-radius: 13px;
+  border: 5px solid transparent;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-image:
+    linear-gradient(177deg, #251c15 0%, #16100b 100%),
+    linear-gradient(150deg, #e9c37e 0%, #c4913f 18%, #7a5020 52%, #d7aa5f 84%, #6d4418 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 233, 183, 0.16),
+    0 10px 24px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+/* ---------- the weather sign, about 1.7x and matching the clock ---------- */
+.weather { right: 92px; top: 40px; }
+.chain { width: 5px; height: 44px; background-size: 5px 11px;
+  background-image: linear-gradient(180deg, #d9ab62 0 6px, rgba(0,0,0,0) 6px 11px); }
+.chain.l { left: 58px; }
+.chain.r { right: 58px; }
+
+.wx-sign {
+  margin-top: 42px; padding: 18px 44px 22px;
+  min-width: 420px;
+  border-radius: 24px;
+  border: 7px solid transparent;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-image:
+    linear-gradient(177deg, #2a2018 0%, #19120c 48%, #241a12 100%),
+    linear-gradient(150deg, #f6d79b 0%, #c4913f 14%, #80561f 36%, #e2b163 58%, #7a5020 78%, #6d4418 100%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 233, 183, 0.20),
+    inset 0 -20px 36px rgba(0, 0, 0, 0.58),
+    0 0 40px rgba(255, 193, 94, 0.14),
+    0 16px 36px rgba(0, 0, 0, 0.62);
+}
+.wx-city {
+  font-size: 23px; letter-spacing: 0.30em; color: #e8c489;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+.wx-main { margin-top: 8px; }
+.wx-icon { margin-right: 20px; }
+.wx-svg { width: 92px; height: 92px; }
+.wx-temp { font-size: 96px; font-weight: 300; color: #fdebc8; letter-spacing: -3px; }
+.wx-temp .deg { font-size: 52px; }
+.wx-word { font-size: 27px; letter-spacing: 0.22em; color: #e8c489; margin-top: 4px; }
+.wx-hilo { font-size: 25px; color: #d2a86f; margin-top: 10px; letter-spacing: 0.08em; }
+.wx-hilo .sep { width: 26px; }
+
+/* ---------- the dock: wider, taller, lower ------------------------------- */
+.shelf-area { bottom: 72px; }
+.shelf {
+  width: 1800px; margin: 0 auto; padding: 16px 18px;
+  border-radius: 36px;
+  background: linear-gradient(180deg, rgba(20, 27, 42, 0.80) 0%, rgba(9, 13, 23, 0.87) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -22px 44px rgba(0, 0, 0, 0.38),
+    0 20px 54px rgba(0, 0, 0, 0.6);
+}
+.dock { height: 116px; }
+.tile { width: 236px; height: 116px; margin: 0 8px; border-radius: 24px; }
+.tile-glass { border-radius: 24px; }
+.tile-sheen { border-radius: 23px 23px 40% 40%; }
+.tile-logo { width: 76%; height: 58%; }
+
+/* ---------- All Apps, given room and contrast ---------------------------- */
+.apps-sheet {
+  width: 1680px; padding: 48px 56px 40px;
+  background: linear-gradient(180deg, rgba(16, 22, 36, 0.93) 0%, rgba(8, 12, 21, 0.95) 100%);
+  border: 1px solid rgba(240, 200, 122, 0.30);
+  border-radius: 30px;
+}
+.apps-sheet h2 { font-size: 46px; font-weight: 300; color: #fdebc8; letter-spacing: 0.01em; }
+.apps-sheet .sub { color: #c9a06a; font-size: 21px; letter-spacing: 0.06em; }
+.grid { margin: 30px -10px 0; max-height: 640px; }
+.grid .tile {
+  width: 248px; height: 128px; margin: 10px; border-radius: 22px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.grid .tile .tile-logo { opacity: .95; }
+.grid .tile.focused {
+  background: rgba(255, 193, 94, 0.16);
+  border-color: rgba(240, 200, 122, 0.9);
+  box-shadow: 0 0 28px rgba(255, 193, 94, 0.3);
+  -webkit-transform: scale(1.05); transform: scale(1.05);
+}
+.grid .tile .tile-name { font-size: 24px; }
+.badge {
+  right: 10px; top: 9px; font-size: 15px; color: #0d1220;
+  background: rgba(240, 200, 122, 0.92); padding: 2px 9px; border-radius: 10px;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Wi-Fi and the menu, same material ---------------------------- */
+.sheet {
+  background: linear-gradient(180deg, rgba(16, 22, 36, 0.94) 0%, rgba(8, 12, 21, 0.96) 100%);
+  border: 1px solid rgba(240, 200, 122, 0.32);
+  border-radius: 30px;
+}
+.sheet h2 { color: #fdebc8; }
+.sheet .sub { color: #c9a06a; }
+.kv .k, .field label { color: #e8c489; }
+.btn {
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(240, 200, 122, 0.34);
+  color: var(--beige);
+}
+.btn.focused {
+  background: rgba(255, 193, 94, 0.9); color: #140e08; border-color: #f6d79b;
+  box-shadow: 0 0 26px rgba(255, 193, 94, 0.45);
+}
+.field.focused input { border-color: #f0c87a; box-shadow: 0 0 20px rgba(255, 193, 94, 0.25); }
+.qr-box { border: 5px solid #c4913f; }
+
+/* ---------- v2.2 corrections, measured against the rendered layout -------- */
+/* `inline-block` put the date plaque beside the clock instead of under it.
+   `table` shrink-wraps to its contents the same way but is block-level, so each
+   plaque gets its own line. */
+.time-block { display: table; }
+.date { display: table; margin: 14px 0 0 16px; }
+
+/* An earlier pass left max-width:1728px on the dock, which quietly capped the
+   new 1800px width. */
+.shelf { width: 1800px; max-width: none; margin: 0 auto; }
+
+/* Sit the dock near the bottom edge, as asked: ~30px of clearance. */
+.shelf-area { bottom: 30px; }

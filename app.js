@@ -338,9 +338,17 @@
   }
 
   // ---------- overlays ----------
+  // HOME | menu | apps | wifi | wifiForm. Only one is ever on screen.
+  function setScreen(name) {
+    var h = document.documentElement;
+    var cls = h.className.replace(/\s*screen-[a-zA-Z]+/g, '').replace(/^\s+|\s+$/g, '');
+    h.className = name === 'home' ? cls : (cls + ' screen-' + name).replace(/^\s+/, '');
+  }
+
   function openOverlay(kind) {
     state.overlay = kind;
     state.sheetIndex = 0;
+    setScreen(kind);
     $('overlay').className = 'overlay';
     $('sheet').className = kind === 'apps' ? 'sheet apps-sheet' : 'sheet';
     if (kind === 'apps') renderApps();
@@ -354,6 +362,7 @@
     var active = document.activeElement;
     if (active && active.blur) active.blur();
     state.overlay = null;
+    setScreen('home');
     $('overlay').className = 'overlay hidden';
     $('sheet').innerHTML = '';
     renderDock();
@@ -388,7 +397,7 @@
 
   function renderWifi() {
     var w = load(LS_WIFI, null);
-    if (!w || !w.ssid) { state.overlay = 'wifiForm'; renderWifiForm(); return; }
+    if (!w || !w.ssid) { state.overlay = 'wifiForm'; setScreen('wifiForm'); renderWifiForm(); return; }
     $('sheet').innerHTML =
       '<div class="wifi">' +
         '<div class="qr-box"><canvas id="qr" style="image-rendering:pixelated"></canvas></div>' +
@@ -429,6 +438,7 @@
     save(LS_WIFI, { ssid: ssid, password: $('pass').value });
     state.sheetIndex = 0;
     state.overlay = 'wifi';
+    setScreen('wifi');
     renderWifi();
   }
 
@@ -570,7 +580,7 @@
       else if (k === KEY.RIGHT) state.sheetIndex = 1;
       else if (k === KEY.ENTER) {
         if (state.sheetIndex === 0) { closeOverlay(); return; }
-        state.overlay = 'wifiForm'; state.sheetIndex = 0; renderWifiForm(); return;
+        state.overlay = 'wifiForm'; setScreen('wifiForm'); state.sheetIndex = 0; renderWifiForm(); return;
       }
       focusSheetButtons();
       return;
@@ -847,7 +857,10 @@
     if (ambient) wokeFromAmbient = true;
     setAmbient(false);
     window.clearTimeout(ambientTimer);
-    ambientTimer = window.setTimeout(function () { setAmbient(true); }, AMBIENT_AFTER);
+    ambientTimer = window.setTimeout(function () {
+      if (state.overlay) return;    // never fade things out from under a menu
+      setAmbient(true);
+    }, AMBIENT_AFTER);
   }
 
   // ---------- start ----------
@@ -888,6 +901,14 @@
     h.className = h.className ? h.className + ' has-clockface' : 'has-clockface';
   }
 
+  // index.html keeps the date inside the clock block, and it ships in the .wgt. Moving it out
+  // here lets the clock and the date be two separate brass plaques instead of one tall box.
+  function splitDatePlaque() {
+    var date = $('date'), top = document.querySelector('.top'), block = document.querySelector('.time-block');
+    if (!date || !top || !block || date.parentNode !== block) return;
+    block.parentNode.insertBefore(date, block.nextSibling);
+  }
+
   // Atmosphere sits between the artwork and the interface: a canal sheen that always breathes,
   // plus rain/snow/warmth layers that fade in with the real forecast. Built here because
   // index.html ships inside the .wgt.
@@ -926,6 +947,7 @@
   });
   registerKeys();
   nudgeAmbient();
+  splitDatePlaque();
   buildAtmosphere();
   applyFont();
   applyTheme();
