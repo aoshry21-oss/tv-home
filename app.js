@@ -76,7 +76,8 @@
     // `logo` is our own artwork for apps whose TV icon is dated. It wins over the TV's icon;
     // if it ever fails to load we fall straight back to what the TV gave us.
     return { key: c.key, name: c.name, sub: c.sub || '', accent: c.accent, icon: iconUrl(info),
-             logo: c.logo || '', shelf: c.shelf !== false,
+             logo: (c.logo && window.HOME_LOGOS) ? (window.HOME_LOGOS[c.logo] || '') : '',
+             shelf: c.shelf !== false,
              ids: (id ? [id] : []).concat(c.ids || []), installed: installed };
   }
 

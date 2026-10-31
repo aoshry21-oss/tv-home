@@ -114,7 +114,21 @@ html, body {
 }
 .tile.focused .tile-name { color: #1a120d; text-shadow: none; }
 .tile.focused .tile-sub { color: #6b4a33; }
-/* Real app icons: the icon sits inside the tile; the name shows above the shelf instead.
+/* Our own brand marks. They go on a light plate because several of the official logos are dark
+   on transparent — Apple's is #0d0d0d, Disney's navy, Max's black — and would vanish on the dark
+   tile. A plate also makes every tile the same shape and weight, which the TV's own icons never
+   are: some ship as full-bleed banners, others as a small mark floating in space. */
+.tile.has-logo { background: linear-gradient(180deg, #faf6ef 0%, #e8dfd0 100%); border-color: rgba(0, 0, 0, 0.12); }
+.tile-logo { position: relative; width: 68%; height: 54%; object-fit: contain; -o-object-fit: contain; }
+.tile.has-logo .tile-wash { opacity: 0.16; }                 /* a hint of the brand, not a tint over the logo */
+.tile.has-logo .tile-name, .tile.has-logo .tile-sub { display: none; }
+.tile.has-logo .tile-accent { opacity: 1; }
+/* The plate is already light, so focus is a lift and a ring rather than a colour change. */
+.tile.has-logo.focused { background: linear-gradient(180deg, #ffffff 0%, #f2ebdf 100%); box-shadow: 0 0 0 5px var(--beige), 0 26px 50px rgba(0, 0, 0, 0.55); }
+.tile.has-logo.focused .tile-wash { display: block; opacity: 0.1; }
+.tile.has-logo.moving { box-shadow: 0 0 0 5px var(--brass), 0 30px 60px rgba(0, 0, 0, 0.6); }
+
+/* The TV's own icons, used for anything we have no mark for.
    `contain`, not `cover` — app icons are square and `cover` crops the top and bottom off them. */
 .tile.has-icon { background: linear-gradient(180deg, #1d150f 0%, #150f0a 100%); }
 .tile-icon {
