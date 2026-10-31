@@ -295,6 +295,7 @@
     }
     $('dock').innerHTML = html;
     watchIcons($('dock'));
+    peekSlug();
     renderPills();
     renderHint();
   }
@@ -924,6 +925,31 @@
     }
   }
 
+  // One singing slug, tucked behind the dock so only its head clears the top edge. Sits on the
+  // stage at a lower z-index than the shelf, so the dock genuinely occludes it.
+  function buildSlug() {
+    var stage = $('stage');
+    if (!stage || !window.HOME_SLUG || !window.HOME_SLUG.image || $('slug')) return;
+    var img = document.createElement('img');
+    img.id = 'slug';
+    img.className = 'slug';
+    img.alt = '';
+    img.src = window.HOME_SLUG.image;
+    stage.appendChild(img);
+  }
+
+  // A single bob when the selection moves. Re-adding the class on the next frame is what makes
+  // the animation restart; without the removal it only ever plays once.
+  var lastPeekIndex = -1;
+  function peekSlug() {
+    var el = $('slug');
+    if (!el || state.dockIndex === lastPeekIndex) return;
+    lastPeekIndex = state.dockIndex;
+    el.className = 'slug';
+    if (el.offsetWidth) { /* reflow, so the class re-triggers */ }
+    el.className = 'slug peek';
+  }
+
   // The backdrop is a data URI from theme.js; the TV's CSP will not load one over https.
   function applyTheme() {
     var t = window.HOME_THEME;
@@ -949,6 +975,7 @@
   nudgeAmbient();
   splitDatePlaque();
   buildAtmosphere();
+  buildSlug();
   applyFont();
   applyTheme();
   startWeather();

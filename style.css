@@ -1123,3 +1123,39 @@ html, body {
 
 /* 6px of air between the date plaque and the top of Roddy's head. */
 .date { margin-top: 4px; }
+
+/* ---------- the singing slug ---------------------------------------------- */
+/* Behind the dock on purpose: z-index below .shelf-area, so only the head and
+   eyes clear the top edge of the board and the rest is genuinely occluded. */
+.slug {
+  position: absolute; z-index: 1;
+  left: 1486px; bottom: 96px;
+  width: 116px; height: 190px;
+  -webkit-filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6)) brightness(0.92) saturate(0.92);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6)) brightness(0.92) saturate(0.92);
+  pointer-events: none;
+}
+/* One short bob when the selection moves. Nothing idles. */
+.slug.peek {
+  -webkit-animation: slugPeek 620ms ease-out 1;
+  animation: slugPeek 620ms ease-out 1;
+}
+@-webkit-keyframes slugPeek {
+  0%   { -webkit-transform: translateY(0) rotate(0deg); }
+  38%  { -webkit-transform: translateY(-16px) rotate(-3deg); }
+  70%  { -webkit-transform: translateY(-4px) rotate(1.5deg); }
+  100% { -webkit-transform: translateY(0) rotate(0deg); }
+}
+@keyframes slugPeek {
+  0%   { transform: translateY(0) rotate(0deg); }
+  38%  { transform: translateY(-16px) rotate(-3deg); }
+  70%  { transform: translateY(-4px) rotate(1.5deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+/* It belongs to the home screen only, and it fades with the dock in ambient. */
+.screen-menu .slug, .screen-apps .slug, .screen-wifi .slug, .screen-wifiForm .slug { display: none; }
+.ambient .slug { opacity: 0; -webkit-transition: opacity 900ms ease-out; transition: opacity 900ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .slug.peek { -webkit-animation: none; animation: none; } }
+
+/* Only the eyes and the top of the grin clear the board: ~72px of 190. */
+.slug { bottom: 62px; }
