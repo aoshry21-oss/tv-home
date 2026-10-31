@@ -501,8 +501,10 @@ html, body {
 
 .shelf {
   position: relative;
-  margin: 10px 110px 0;
-  padding: 26px 30px;
+  /* Left margin clears the two characters in the artwork; the board lives in the right
+     two-thirds so the scene is never covered by it. */
+  margin: 10px 110px 0 650px;
+  padding: 20px 22px;
   border-radius: 26px;
   background: linear-gradient(180deg, rgba(9, 17, 32, 0.92) 0%, rgba(4, 9, 20, 0.95) 100%);
   border: 2px solid rgba(224, 169, 74, 0.55);
@@ -525,13 +527,13 @@ html, body {
 @-webkit-keyframes bulbFlicker { 0%,100% { opacity: .85; } 47% { opacity: .85; } 49% { opacity: .45; } 51% { opacity: .9; } 72% { opacity: .6; } }
 @keyframes bulbFlicker { 0%,100% { opacity: .85; } 47% { opacity: .85; } 49% { opacity: .45; } 51% { opacity: .9; } 72% { opacity: .6; } }
 
-.dock { height: 150px; }
-.tile { width: 228px; height: 150px; margin: 0 10px; }
+.dock { height: 124px; }
+.tile { width: 124px; height: 124px; margin: 0 5px; }
 
 /* Logos sit straight on the board; the selected one lifts into a pool of light. */
 .tile.has-logo { background: none; border: 0; box-shadow: none; }
 .tile-logo {
-  position: relative; width: 82%; height: 58%;
+  position: relative; width: 88%; height: 62%;
   object-fit: contain; -o-object-fit: contain;
   opacity: 0.62;
   -webkit-filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
@@ -585,21 +587,21 @@ html, body {
 /* Guest Wi-Fi and All Apps. Brass signs rather than logo tiles, so they read as
    controls and not as another streaming service. */
 .tile.util {
-  width: 150px; height: 150px; margin: 0 8px;
+  width: 96px; height: 124px; margin: 0 4px;
   display: -webkit-box; display: flex;
   -webkit-box-orient: vertical; -webkit-box-direction: normal;
   flex-direction: column; align-items: center; justify-content: center;
   background: none; border: 0; box-shadow: none;
 }
-.tile.util:first-of-type { margin-left: 26px; }
+.tile.util:first-of-type { margin-left: 18px; }
 .util-ico {
-  width: 54px; height: 54px; fill: none; stroke: var(--brass);
+  width: 40px; height: 40px; fill: none; stroke: var(--brass);
   stroke-width: 2.1; stroke-linecap: round; opacity: .72;
   -webkit-transition: opacity 180ms ease-out; transition: opacity 180ms ease-out;
 }
 .util-ico .sld { fill: var(--brass); stroke: none; }
 .util-name {
-  margin-top: 12px; font-size: 19px; font-weight: 400; color: var(--brass);
+  margin-top: 9px; font-size: 15px; font-weight: 400; color: var(--brass);
   letter-spacing: 0.17em; text-transform: uppercase; opacity: .72; white-space: nowrap;
   -webkit-transition: opacity 180ms ease-out; transition: opacity 180ms ease-out;
 }
