@@ -1062,3 +1062,64 @@ html, body {
 
 /* Sit the dock near the bottom edge, as asked: ~30px of clearance. */
 .shelf-area { bottom: 30px; }
+
+/* ============================================================================
+   v3 — measured against the approved wallpaper and the TV photographs.
+
+   The RATROPOLIS banner occupies roughly x1170-1480, y285-375 on the 1920x1080
+   canvas (measured from the approved art, not estimated). Nothing may cross it.
+   The weather sign used to run to y349, straight through the lettering. Rather
+   than squeeze it narrow and unreadable, it is compressed vertically and lifted
+   so it finishes ABOVE the banner, keeping its width and its big temperature.
+   ============================================================================ */
+
+/* ---------- weather: shorter, higher, still readable --------------------- */
+.weather { top: 22px; right: 92px; }
+.chain { height: 26px; }
+.wx-sign {
+  margin-top: 26px;
+  padding: 11px 34px 13px;
+  min-width: 380px;
+  border-width: 5px;
+}
+.wx-city { font-size: 19px; letter-spacing: 0.26em; }
+.wx-main { margin-top: 2px; }
+.wx-icon { margin-right: 14px; }
+.wx-svg { width: 68px; height: 68px; }
+.wx-temp { font-size: 74px; letter-spacing: -2px; }
+.wx-temp .deg { font-size: 40px; }
+/* condition and high/low on one line: this is the row that bought the clearance */
+.wx-foot { margin-top: 3px; white-space: nowrap; }
+.wx-word { display: inline; font-size: 20px; letter-spacing: 0.18em; margin: 0; }
+.wx-hilo {
+  display: inline; font-size: 19px; color: #c9a06a; margin: 0 0 0 16px;
+  letter-spacing: 0.04em;
+}
+.wx-hilo .sep { display: inline-block; width: 12px; }
+
+/* ---------- clock: thicker frame, real bevel, tighter stack -------------- */
+.time-block {
+  border-width: 9px;
+  padding: 12px 38px 10px;
+  /* An inner bevel line turns the frame from a flat gold outline into metal
+     with a thickness to it — the single thing the TV photo showed worst. */
+  box-shadow:
+    inset 0 0 0 2px rgba(78, 50, 15, 0.9),
+    inset 0 3px 0 4px rgba(255, 233, 183, 0.16),
+    inset 0 -22px 40px rgba(0, 0, 0, 0.62),
+    0 0 36px rgba(255, 193, 94, 0.10),
+    0 16px 36px rgba(0, 0, 0, 0.68);
+}
+.clock { font-size: 120px; }
+.clock .meridiem { font-size: 29px; margin-left: 10px; }
+.date {
+  margin: 10px 0 0 16px; padding: 7px 24px;
+  font-size: 20px; border-width: 6px;
+  box-shadow:
+    inset 0 0 0 2px rgba(78, 50, 15, 0.9),
+    inset 0 2px 0 3px rgba(255, 233, 183, 0.14),
+    0 10px 22px rgba(0, 0, 0, 0.62);
+}
+
+/* 6px of air between the date plaque and the top of Roddy's head. */
+.date { margin-top: 4px; }

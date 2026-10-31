@@ -719,8 +719,8 @@
     var day = w.isDay !== 0;
     var hilo = '';
     if (typeof w.hi === 'number' && typeof w.lo === 'number') {
-      hilo = '<div class="wx-hilo">H: ' + Math.round(w.hi) + '&deg;' +
-             '<span class="sep"></span>L: ' + Math.round(w.lo) + '&deg;</div>';
+      hilo = '<span class="wx-hilo">H ' + Math.round(w.hi) + '&deg;' +
+             '<span class="sep"></span>L ' + Math.round(w.lo) + '&deg;</span>';
     }
     el.className = 'weather wx-' + kind + (day ? ' is-day' : ' is-dark');
     el.innerHTML =
@@ -731,8 +731,8 @@
           '<span class="wx-icon">' + wxIcon(kind, day) + '</span>' +
           '<span class="wx-temp">' + Math.round(w.temp) + '<span class="deg">&deg;</span></span>' +
         '</div>' +
-        '<div class="wx-word">' + escapeHtml(WX_WORD[kind] || '') + '</div>' +
-        hilo +
+        '<div class="wx-foot"><span class="wx-word">' + escapeHtml(WX_WORD[kind] || '') +
+        '</span>' + hilo + '</div>' +
       '</div>';
     stageWeather(kind);
   }
