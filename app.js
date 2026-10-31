@@ -169,7 +169,7 @@
       }
     }
     state.dock = dock;
-    if (state.dockIndex >= dock.length) state.dockIndex = Math.max(0, dock.length - 1);
+    if (state.dockIndex >= dockCount()) state.dockIndex = Math.max(0, dockCount() - 1);
     renderDock();
     if (state.overlay === 'apps') renderApps();
   }
@@ -267,35 +267,40 @@
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // Brass plaques on the end of the board. Guest Wi-Fi had no way in once its pill was removed;
+  // this puts it back somewhere you can actually find it, without adding chrome to the screen.
+  var UTILS = [
+    { key: 'wifi', name: 'Guest Wi-Fi',
+      icon: '<path d="M3 9.5a16 16 0 0 1 22 0"/><path d="M7 14a10.5 10.5 0 0 1 14 0"/>' +
+            '<path d="M10.8 18.4a5 5 0 0 1 6.4 0"/><circle cx="14" cy="22.6" r="1.7" class="sld"/>' },
+    { key: 'apps', name: 'All Apps',
+      icon: '<rect x="3" y="3" width="9" height="9" rx="2.4"/><rect x="16" y="3" width="9" height="9" rx="2.4"/>' +
+            '<rect x="3" y="16" width="9" height="9" rx="2.4"/><rect x="16" y="16" width="9" height="9" rx="2.4"/>' }
+  ];
+
+  function utilHtml(u, focused) {
+    return '<div class="tile util' + (focused ? ' focused' : '') + '">' +
+      '<svg class="util-ico" viewBox="0 0 28 28" aria-hidden="true">' + u.icon + '</svg>' +
+      '<div class="util-name">' + escapeHtml(u.name) + '</div></div>';
+  }
+
+  function dockCount() { return state.dock.length + UTILS.length; }
+
   function renderDock() {
-    var html = '';
-    for (var i = 0; i < state.dock.length; i++) {
+    var html = '', i;
+    for (i = 0; i < state.dock.length; i++) {
       var app = state.byKey[state.dock[i]];
       var cls = '';
-      if (!state.overlay && state.zone === 'dock' && i === state.dockIndex) cls += ' focused' + (state.moving ? ' moving' : '');
+      if (!state.overlay && i === state.dockIndex) cls += ' focused' + (state.moving ? ' moving' : '');
       html += tileHtml(app, cls);
     }
-    if (!state.dock.length) {
-      html = '<div class="tile' + (state.zone === 'dock' && !state.overlay ? ' focused' : '') + '" style="width:520px"><div class="tile-name">Add apps</div><div class="tile-sub">Press OK</div></div>';
+    for (i = 0; i < UTILS.length; i++) {
+      html += utilHtml(UTILS[i], !state.overlay && !state.moving && state.dockIndex === state.dock.length + i);
     }
     $('dock').innerHTML = html;
     watchIcons($('dock'));
-    renderLabel();
     renderPills();
     renderHint();
-  }
-
-  function renderLabel() {
-    var name = ' ', sub = ' ';
-    if (state.zone === 'dock' && state.dock.length) {
-      var app = state.byKey[state.dock[state.dockIndex]];
-      if (app) { name = app.name; sub = app.sub || ' '; }
-    } else if (state.zone === 'top') {
-      name = state.topIndex === 0 ? 'Guest Wi-Fi' : 'All apps';
-      sub = state.topIndex === 0 ? 'Show the QR code for guests' : 'Open anything, add it to the shelf';
-    }
-    $('focusName').textContent = name;
-    $('focusSub').textContent = sub;
   }
 
   // index.html ships inside the .wgt, so the pills' markup can't change without a reinstall.
@@ -497,13 +502,19 @@
 
     // dock
     if (k === KEY.LEFT) state.dockIndex = Math.max(0, state.dockIndex - 1);
-    else if (k === KEY.RIGHT) state.dockIndex = Math.min(state.dock.length - 1, state.dockIndex + 1);
+    else if (k === KEY.RIGHT) state.dockIndex = Math.min(dockCount() - 1, state.dockIndex + 1);
     else if (k === KEY.UP) { openOverlay('apps'); return; }
     else if (k === KEY.GREEN) { openOverlay('wifi'); return; }
     else if (k === KEY.ENTER) {
+      if (state.dockIndex >= state.dock.length) {
+        openOverlay(UTILS[state.dockIndex - state.dock.length].key);
+        return;
+      }
       if (!state.dock.length) { openOverlay('apps'); return; }
       launch(state.byKey[state.dock[state.dockIndex]]);
-    } else if (k === KEY.YELLOW && state.dock.length) state.moving = true;
+    } else if (k === KEY.YELLOW && state.dock.length && state.dockIndex < state.dock.length) {
+      state.moving = true;   // only real apps reorder; the plaques stay put
+    }
     if (state.dockIndex < 0) state.dockIndex = 0;
     renderDock();
   }

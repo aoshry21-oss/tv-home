@@ -299,8 +299,9 @@ html, body {
 
 /* Just enough shading for type to hold, never a blanket over the picture. */
 #stage:before {
-  top: 0; height: 420px;
-  background: linear-gradient(180deg, rgba(4, 8, 18, 0.74) 0%, rgba(4, 8, 18, 0.30) 58%, rgba(4, 8, 18, 0) 100%);
+  top: 0; height: 580px;
+  background: linear-gradient(180deg, rgba(4, 8, 18, 0.80) 0%, rgba(4, 8, 18, 0.52) 42%,
+                                      rgba(4, 8, 18, 0.22) 72%, rgba(4, 8, 18, 0) 100%);
 }
 #stage:after {
   bottom: 0; height: 400px;
@@ -392,9 +393,11 @@ html, body {
 }
 
 .date {
-  font-size: 29px; font-weight: 400; color: var(--brass);
+  font-size: 29px; font-weight: 400; color: var(--brass-hi);
   letter-spacing: 0.26em; text-transform: uppercase; margin-top: 16px;
-  text-shadow: 0 0 16px rgba(224, 169, 74, 0.45), 0 2px 5px rgba(0, 0, 0, 0.8);
+  /* Doubled-up dark shadow: this line crosses the brightest part of the artwork. */
+  text-shadow: 0 0 18px rgba(255, 193, 94, 0.5), 0 2px 4px rgba(0, 0, 0, 0.95),
+               0 0 22px rgba(0, 0, 0, 0.85);
 }
 
 /* ---------- the weather sign ---------------------------------------------- */
@@ -489,7 +492,7 @@ html, body {
 /* 110px here lands the board 68px clear of the screen edge — TV overscan can eat the
    outer ~5%, and 68px is just over 6% of 1080. */
 .shelf-area { bottom: 110px; z-index: 2; }
-.focus-label { padding: 0 120px; height: 96px; }
+.focus-label { display: none; }
 .focus-name {
   font-size: 58px; font-weight: 300; color: var(--ivory); letter-spacing: -0.5px;
   text-shadow: 0 0 26px rgba(255, 193, 94, 0.35), 0 3px 10px rgba(0, 0, 0, 0.9);
@@ -501,13 +504,13 @@ html, body {
   margin: 10px 110px 0;
   padding: 26px 30px;
   border-radius: 26px;
-  background: linear-gradient(180deg, rgba(18, 32, 56, 0.72) 0%, rgba(7, 16, 32, 0.80) 100%);
-  border: 3px solid rgba(224, 169, 74, 0.70);
+  background: linear-gradient(180deg, rgba(9, 17, 32, 0.92) 0%, rgba(4, 9, 20, 0.95) 100%);
+  border: 2px solid rgba(224, 169, 74, 0.55);
   box-shadow:
-    inset 0 2px 0 rgba(255, 217, 138, 0.35),
-    inset 0 -16px 30px rgba(0, 0, 0, 0.45),
-    0 0 50px rgba(255, 193, 94, 0.16),
-    0 20px 44px rgba(0, 0, 0, 0.55);
+    inset 0 1px 0 rgba(255, 217, 138, 0.28),
+    inset 0 -16px 30px rgba(0, 0, 0, 0.5),
+    0 0 36px rgba(255, 193, 94, 0.12),
+    0 20px 44px rgba(0, 0, 0, 0.6);
 }
 /* A row of little bulbs along the top edge, like a theatre sign. */
 .shelf:before {
@@ -577,3 +580,37 @@ html, body {
     -webkit-transition: none !important; transition: none !important;
   }
 }
+
+/* ---------- utility plaques on the end of the board ----------------------- */
+/* Guest Wi-Fi and All Apps. Brass signs rather than logo tiles, so they read as
+   controls and not as another streaming service. */
+.tile.util {
+  width: 150px; height: 150px; margin: 0 8px;
+  display: -webkit-box; display: flex;
+  -webkit-box-orient: vertical; -webkit-box-direction: normal;
+  flex-direction: column; align-items: center; justify-content: center;
+  background: none; border: 0; box-shadow: none;
+}
+.tile.util:first-of-type { margin-left: 26px; }
+.util-ico {
+  width: 54px; height: 54px; fill: none; stroke: var(--brass);
+  stroke-width: 2.1; stroke-linecap: round; opacity: .72;
+  -webkit-transition: opacity 180ms ease-out; transition: opacity 180ms ease-out;
+}
+.util-ico .sld { fill: var(--brass); stroke: none; }
+.util-name {
+  margin-top: 12px; font-size: 19px; font-weight: 400; color: var(--brass);
+  letter-spacing: 0.17em; text-transform: uppercase; opacity: .72; white-space: nowrap;
+  -webkit-transition: opacity 180ms ease-out; transition: opacity 180ms ease-out;
+}
+.tile.util.focused {
+  background: radial-gradient(60% 65% at 50% 48%, rgba(255, 193, 94, 0.28) 0%, rgba(255, 193, 94, 0) 72%);
+  -webkit-transform: translateY(-10px) scale(1.12); transform: translateY(-10px) scale(1.12);
+}
+.tile.util.focused .util-ico {
+  opacity: 1; stroke: var(--brass-hi);
+  -webkit-filter: drop-shadow(0 0 14px rgba(255, 193, 94, 0.8));
+  filter: drop-shadow(0 0 14px rgba(255, 193, 94, 0.8));
+}
+.tile.util.focused .util-ico .sld { fill: var(--brass-hi); }
+.tile.util.focused .util-name { opacity: 1; color: var(--ivory); }
