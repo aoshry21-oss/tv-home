@@ -158,10 +158,30 @@
   // ---------- rendering ----------
   var brokenIcons = {};   // icon URLs that failed to load; those apps keep the name tile
 
+  // A colour -> 'rgba(r,g,b,a)', so a tile can be washed in its own app's colour. Accepts the
+  // '#rrggbb' from the catalog and the 'rgb(r, g, b)' the browser hands back from a style property.
+  function tint(colour, alpha) {
+    var s = String(colour || '');
+    var m = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    if (m) return 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + alpha + ')';
+    var h = s.replace('#', '');
+    if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return 'rgba(201,162,122,' + alpha + ')';
+    return 'rgba(' + parseInt(h.substr(0, 2), 16) + ',' + parseInt(h.substr(2, 2), 16) + ',' +
+           parseInt(h.substr(4, 2), 16) + ',' + alpha + ')';
+  }
+
+  // The wash is a separate layer rather than the tile's own background, so the focused state can
+  // simply hide it instead of fighting an inline style.
+  function washHtml(app) {
+    return '<span class="tile-wash" style="background-image:linear-gradient(158deg,' +
+      tint(app.accent, 0.42) + ' 0%,' + tint(app.accent, 0.13) + ' 55%,rgba(0,0,0,0) 100%)"></span>';
+  }
+
   function tileHtml(app, extra) {
     var icon = app.icon && !brokenIcons[app.icon] ? app.icon : '';
     return '<div class="tile' + (icon ? ' has-icon' : '') + (extra || '') + '">' +
-      (icon ? '<img class="tile-icon" alt="" src="' + escapeHtml(icon) + '">' : '') +
+      (icon ? '<img class="tile-icon" alt="" src="' + escapeHtml(icon) + '">' : washHtml(app)) +
       '<span class="arrow l">&#8249;</span><span class="arrow r">&#8250;</span>' +
       '<span class="tile-accent" style="background:' + app.accent + '"></span>' +
       '<div class="tile-name">' + escapeHtml(app.name) + '</div>' +
@@ -169,17 +189,24 @@
       '</div>';
   }
 
-  // If an icon can't be loaded, drop it and show the app's name instead.
+  // If an icon can't be loaded, drop it and fall back to the washed name tile.
   function watchIcons(container) {
     var imgs = container.querySelectorAll('img.tile-icon');
     for (var i = 0; i < imgs.length; i++) {
       imgs[i].onerror = function () {
         brokenIcons[this.getAttribute('src')] = true;
         var tile = this.parentNode;
-        if (tile) {
-          tile.className = tile.className.replace(/\s*has-icon/, '');
-          tile.removeChild(this);
-        }
+        if (!tile) return;
+        tile.className = tile.className.replace(/\s*has-icon/, '');
+        tile.removeChild(this);
+        // Put the wash back, otherwise the tile drops to a bare dark box.
+        var accent = tile.querySelector('.tile-accent');
+        var wash = document.createElement('span');
+        wash.className = 'tile-wash';
+        wash.style.backgroundImage = 'linear-gradient(158deg,' +
+          tint(accent ? accent.style.backgroundColor : '', 0.42) + ' 0%,' +
+          tint(accent ? accent.style.backgroundColor : '', 0.13) + ' 55%,rgba(0,0,0,0) 100%)';
+        tile.insertBefore(wash, tile.firstChild);
       };
     }
   }
