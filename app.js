@@ -6,7 +6,9 @@
               RED: 403, GREEN: 404, YELLOW: 405, BLUE: 406, IME_DONE: 65376, IME_CANCEL: 65385 };
   var SELF_ID = 'AaronHome1.Home';
   var MAX_DOCK = 7;
-  var LS_DOCK = 'home.dock.v1';
+  // v2: the catalog keys changed (tizentube dropped, ids verified against the TV), so the saved
+  // shelf is rebuilt once rather than silently losing the entries whose keys no longer exist.
+  var LS_DOCK = 'home.dock.v2';
   var LS_WIFI = 'home.wifi.v1';
   var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -71,7 +73,10 @@
 
   function catalogEntry(c, installed, info) {
     var id = info ? info.id : null;
+    // `logo` is our own artwork for apps whose TV icon is dated. It wins over the TV's icon;
+    // if it ever fails to load we fall straight back to what the TV gave us.
     return { key: c.key, name: c.name, sub: c.sub || '', accent: c.accent, icon: iconUrl(info),
+             logo: c.logo || '', shelf: c.shelf !== false,
              ids: (id ? [id] : []).concat(c.ids || []), installed: installed };
   }
 
@@ -84,16 +89,28 @@
       for (i = 0; i < catalog.length; i++) apps.push(catalogEntry(catalog[i], false, null));
       return apps;
     }
+    // Two passes, ids before names. Matching on the name first is what let "Disney+" lose its
+    // slot to "DisneyNOW": `^disney` hit whichever the TV happened to list first. An id is exact,
+    // so every catalog entry gets the chance to claim its own id before any name guessing starts.
+    var hits = [];
     for (i = 0; i < catalog.length; i++) {
-      var c = catalog[i];
-      var re = new RegExp(c.match, 'i');
+      var ids = catalog[i].ids || [];
       var hit = null;
-      for (j = 0; j < infos.length; j++) {
-        var info = infos[j];
-        if (used[info.id]) continue;
-        if (re.test(info.name || '') || (c.ids || []).indexOf(info.id) !== -1) { hit = info; break; }
+      for (j = 0; j < infos.length && !hit; j++) {
+        if (!used[infos[j].id] && ids.indexOf(infos[j].id) !== -1) hit = infos[j];
       }
-      if (hit) { used[hit.id] = true; apps.push(catalogEntry(c, true, hit)); }
+      if (hit) used[hit.id] = true;
+      hits[i] = hit;
+    }
+    for (i = 0; i < catalog.length; i++) {
+      if (hits[i]) continue;
+      var re = new RegExp(catalog[i].match, 'i');
+      for (j = 0; j < infos.length && !hits[i]; j++) {
+        if (!used[infos[j].id] && re.test(infos[j].name || '')) { hits[i] = infos[j]; used[infos[j].id] = true; }
+      }
+    }
+    for (i = 0; i < catalog.length; i++) {
+      if (hits[i]) apps.push(catalogEntry(catalog[i], true, hits[i]));
     }
     var others = [];
     for (j = 0; j < infos.length; j++) {
@@ -117,10 +134,10 @@
     if (saved && saved.length) {
       for (i = 0; i < saved.length; i++) if (state.byKey[saved[i]]) dock.push(saved[i]);
     } else {
-      var hasNoAds = !!(state.byKey.tizentube && (state.byKey.tizentube.installed || !known));
       for (i = 0; i < apps.length && dock.length < MAX_DOCK; i++) {
-        if (apps[i].key === 'youtube' && hasNoAds) continue;   // ad-free YouTube already covers it
-        if ((apps[i].installed || !known) && apps[i].key.indexOf('id:') !== 0) dock.push(apps[i].key);
+        if (apps[i].shelf === false) continue;                  // streaming only by default
+        if (apps[i].key.indexOf('id:') === 0) continue;         // not one of ours
+        if (apps[i].installed || !known) dock.push(apps[i].key);
       }
     }
     state.dock = dock;
@@ -178,10 +195,17 @@
       tint(app.accent, 0.42) + ' 0%,' + tint(app.accent, 0.13) + ' 55%,rgba(0,0,0,0) 100%)"></span>';
   }
 
+  // Three ways a tile can look, in order of preference: our own logo on the app's colour, the
+  // TV's own icon, or the washed name tile.
   function tileHtml(app, extra) {
+    var logo = app.logo && !brokenIcons[app.logo] ? app.logo : '';
     var icon = app.icon && !brokenIcons[app.icon] ? app.icon : '';
-    return '<div class="tile' + (icon ? ' has-icon' : '') + (extra || '') + '">' +
-      (icon ? '<img class="tile-icon" alt="" src="' + escapeHtml(icon) + '">' : washHtml(app)) +
+    var kind = logo ? ' has-logo' : (icon ? ' has-icon' : '');
+    var art;
+    if (logo) art = washHtml(app) + '<img class="tile-logo" alt="" src="' + escapeHtml(logo) + '">';
+    else if (icon) art = '<img class="tile-icon" alt="" src="' + escapeHtml(icon) + '">';
+    else art = washHtml(app);
+    return '<div class="tile' + kind + (extra || '') + '">' + art +
       '<span class="arrow l">&#8249;</span><span class="arrow r">&#8250;</span>' +
       '<span class="tile-accent" style="background:' + app.accent + '"></span>' +
       '<div class="tile-name">' + escapeHtml(app.name) + '</div>' +
