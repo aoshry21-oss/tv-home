@@ -616,3 +616,247 @@ html, body {
 }
 .tile.util.focused .util-ico .sld { fill: var(--brass-hi); }
 .tile.util.focused .util-name { opacity: 1; color: var(--ivory); }
+/* ============================================================================
+   Ratropolis — final pass.
+
+   One thing to know before reading further: this TV is Tizen 4 / Chromium ~56,
+   which has NO backdrop-filter. Real frosted glass is impossible here, and a
+   `backdrop-filter` declaration would be silently dropped, leaving flat boxes.
+   The dock below fakes it instead — translucent base, a bright top sheen, an
+   inner rim light and a brand-coloured fill. It reads as lit glass on the panel
+   without ever blurring what is behind it.
+   ============================================================================ */
+
+/* The greeting is gone for good. */
+.greeting { display: none !important; }
+
+/* ---------- clock: a brass station plaque -------------------------------- */
+.top { top: 70px; left: 96px; right: 96px; }
+.time-block {
+  display: inline-block;
+  padding: 22px 46px 20px;
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(26, 20, 14, 0.90) 0%, rgba(14, 11, 8, 0.94) 100%);
+  border: 4px solid transparent;
+  /* Two backgrounds: the dark interior, then a brass gradient painted into the
+     border box. Cheaper and sharper than stacking elements. */
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-image:
+    linear-gradient(180deg, rgba(26, 20, 14, 0.90) 0%, rgba(14, 11, 8, 0.94) 100%),
+    linear-gradient(165deg, #f0c87a 0%, #b9823a 26%, #7d5420 52%, #d9ab62 74%, #8a5c25 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 229, 173, 0.22),
+    inset 0 -18px 34px rgba(0, 0, 0, 0.5),
+    0 0 46px rgba(255, 193, 94, 0.14),
+    0 20px 44px rgba(0, 0, 0, 0.62);
+}
+/* Four rivets, one per corner. */
+.time-block:before, .time-block:after,
+.weather .wx-sign:before, .weather .wx-sign:after {
+  content: ''; position: absolute; width: 9px; height: 9px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #ffe3a8, #8a5c25 70%, #4e320f);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.time-block { position: relative; }
+.time-block:before { left: 16px; top: 14px; }
+.time-block:after { right: 16px; top: 14px; }
+
+.clock {
+  font-size: 170px; font-weight: 400; line-height: 0.94;
+  letter-spacing: 1px; margin: 0;
+  color: #fff6e2;
+  text-shadow:
+    0 2px 0 #c89344, 0 4px 0 #9a6a27,
+    0 7px 16px rgba(0, 0, 0, 0.8),
+    0 0 44px rgba(255, 199, 109, 0.28);
+}
+.has-clockface .clock { font-family: 'ClockFace', 'Outfit', sans-serif; -webkit-text-stroke: 0; }
+.clock .meridiem {
+  font-family: 'Outfit', sans-serif;
+  font-size: 40px; font-weight: 400; letter-spacing: 0.14em;
+  color: #e8bd72; vertical-align: super; margin-left: 14px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+}
+.date {
+  font-size: 25px; font-weight: 400; color: #e8bd72;
+  letter-spacing: 0.22em; text-transform: uppercase; margin-top: 10px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+}
+
+/* ---------- weather: a sign hanging off two chains ----------------------- */
+.weather {
+  position: absolute; right: 96px; top: 44px; left: auto; z-index: 3;
+  -webkit-transform: none; transform: none;
+  display: block; padding: 0; border: 0; background: none; box-shadow: none;
+}
+.chain {
+  position: absolute; top: 0; width: 4px; height: 40px;
+  background-image: linear-gradient(180deg, #d9ab62 0 5px, rgba(0,0,0,0) 5px 9px);
+  background-size: 4px 9px;
+  opacity: .85;
+}
+.chain.l { left: 44px; }
+.chain.r { right: 44px; }
+
+.wx-sign {
+  position: relative; margin-top: 38px;
+  padding: 14px 34px 16px;
+  text-align: center; min-width: 300px;
+  border-radius: 20px;
+  border: 4px solid transparent;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  background-image:
+    linear-gradient(180deg, rgba(18, 16, 12, 0.92) 0%, rgba(10, 9, 7, 0.95) 100%),
+    linear-gradient(165deg, #f0c87a 0%, #b9823a 28%, #7d5420 54%, #d9ab62 76%, #8a5c25 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 229, 173, 0.20),
+    inset 0 -14px 26px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(255, 193, 94, 0.16),
+    0 16px 34px rgba(0, 0, 0, 0.6);
+}
+.wx-sign:before { left: 13px; top: 11px; }
+.wx-sign:after { right: 13px; top: 11px; }
+
+.wx-city {
+  font-size: 18px; font-weight: 400; color: #e8bd72;
+  letter-spacing: 0.30em; text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+.wx-main {
+  display: -webkit-box; display: flex; align-items: center; justify-content: center;
+  margin-top: 4px;
+}
+.wx-icon { display: block; margin-right: 14px; }
+.wx-svg {
+  display: block; width: 62px; height: 62px;
+  -webkit-filter: drop-shadow(0 0 12px rgba(255, 206, 102, 0.45));
+  filter: drop-shadow(0 0 12px rgba(255, 206, 102, 0.45));
+}
+.wx-temp {
+  font-size: 64px; font-weight: 300; line-height: 1; color: #fff6e2;
+  letter-spacing: -2px; text-shadow: 0 3px 7px rgba(0, 0, 0, 0.85);
+}
+.wx-temp .deg { font-size: 36px; vertical-align: top; }
+.wx-word {
+  font-size: 20px; font-weight: 400; color: #e8bd72; margin-top: 2px;
+  letter-spacing: 0.22em; text-transform: uppercase;
+}
+.wx-hilo {
+  font-size: 19px; font-weight: 400; color: #c9a06a; margin-top: 7px;
+  letter-spacing: 0.10em;
+}
+.wx-hilo .sep { display: inline-block; width: 20px; }
+
+/* ---------- the dock: liquid glass, faked for an engine with no blur ------ */
+.shelf {
+  margin: 0 auto;
+  width: 1150px; max-width: 1728px;
+  padding: 16px 20px;
+  border-radius: 34px;
+  background: linear-gradient(180deg, rgba(20, 27, 42, 0.74) 0%, rgba(10, 14, 24, 0.82) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -20px 40px rgba(0, 0, 0, 0.35),
+    0 18px 50px rgba(0, 0, 0, 0.55);
+}
+.shelf:before { display: none; }         /* the bulb strip belongs to the older board */
+
+.dock { height: 108px; }
+.tile {
+  width: 148px; height: 108px; margin: 0 7px;
+  border-radius: 22px; background: none; border: 0; box-shadow: none;
+  -webkit-transition: -webkit-transform 210ms ease-out; transition: transform 210ms ease-out;
+}
+
+/* layers: brand fill, then a gloss across the top, then the logo */
+.tile-glass {
+  position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30), 0 8px 20px rgba(0, 0, 0, 0.45);
+  -webkit-transition: box-shadow 210ms ease-out, border-color 210ms ease-out;
+  transition: box-shadow 210ms ease-out, border-color 210ms ease-out;
+}
+.tile-sheen {
+  position: absolute; left: 1px; right: 1px; top: 1px; height: 44%;
+  border-radius: 21px 21px 40% 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.05) 70%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+.tile-logo {
+  position: relative; width: 78%; height: 54%;
+  object-fit: contain; -o-object-fit: contain;
+  opacity: 0.88;
+  -webkit-filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
+  -webkit-transition: opacity 210ms ease-out; transition: opacity 210ms ease-out;
+}
+.tile-logo.lit {
+  -webkit-filter: brightness(0) invert(1) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85));
+  filter: brightness(0) invert(1) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85));
+}
+
+/* Focus: the brand light comes up, the rim lights, and it grows a little.
+   Scale and border both change, so focus never depends on colour alone. */
+.tile.has-logo.focused {
+  background: none;
+  -webkit-transform: scale(1.06); transform: scale(1.06);
+}
+.tile.has-logo.focused .tile-glass {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 26px rgba(255, 255, 255, 0.14),
+    0 0 26px 2px rgba(255, 255, 255, 0.18),
+    0 10px 26px rgba(0, 0, 0, 0.5);
+}
+.tile.has-logo.focused .tile-glass:after {
+  content: ''; position: absolute; left: -2px; top: -2px; right: -2px; bottom: -2px;
+  border-radius: 24px; background: inherit; opacity: .75; z-index: -1;
+}
+.tile.has-logo.focused .tile-logo { opacity: 1; }
+.tile.has-logo.focused .tile-sheen {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0.08) 70%, rgba(255, 255, 255, 0) 100%);
+}
+.tile.has-icon {
+  background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+}
+.tile.has-icon.focused { -webkit-transform: scale(1.06); transform: scale(1.06);
+  border-color: rgba(255, 255, 255, 0.8); box-shadow: 0 0 24px rgba(255, 255, 255, 0.2); }
+
+/* ---------- the small secondary menu ------------------------------------- */
+.menu-sheet { width: 760px; padding: 48px 52px; }
+.menu-list { margin-top: 26px; }
+.menu-row {
+  display: -webkit-box; display: flex; align-items: center;
+  padding: 20px 24px; border-radius: 18px; margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+.menu-row.focused {
+  background: rgba(255, 193, 94, 0.16);
+  border-color: rgba(240, 200, 122, 0.85);
+  box-shadow: 0 0 26px rgba(255, 193, 94, 0.22);
+}
+.menu-ico {
+  width: 40px; height: 40px; margin-right: 22px; flex: 0 0 auto;
+  fill: none; stroke: #e8bd72; stroke-width: 2.1; stroke-linecap: round;
+}
+.menu-ico .sld { fill: #e8bd72; stroke: none; }
+.menu-row.focused .menu-ico { stroke: #fff6e2; }
+.menu-row.focused .menu-ico .sld { fill: #fff6e2; }
+.menu-name { font-size: 34px; font-weight: 300; color: var(--beige); }
+.menu-note { font-size: 20px; font-weight: 300; color: var(--beige-dim); margin-top: 2px; }
+
+/* ---------- leftovers from earlier passes -------------------------------- */
+.tile.util, .util-ico, .util-name { display: none !important; }
+
+/* ---------- motion off ----------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .tile, .tile-glass, .tile-logo { -webkit-transition: none !important; transition: none !important; }
+}

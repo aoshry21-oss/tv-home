@@ -45,15 +45,11 @@
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
   // Ticks every second so the minute never lags, but each piece is only written when its text
   // actually changes — rewriting the clock 60 times a minute makes it shimmer on a TV panel.
-  var lastGreet = '', lastClock = '', lastDate = '';
+  var lastClock = '', lastDate = '';
 
   function tick() {
     var d = new Date();
     var h = d.getHours();
-    var part = h < 5 ? 'Good Night' : h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
-    var greet = window.HOME_NAME ? part + ', ' + window.HOME_NAME : part;
-    if (greet !== lastGreet) { $('greeting').textContent = greet; lastGreet = greet; }
-
     var h12 = h % 12; if (h12 === 0) h12 = 12;
     var face = h12 + ':' + pad(d.getMinutes());
     var mer = h < 12 ? 'AM' : 'PM';
@@ -230,7 +226,14 @@
     var icon = app.icon && !brokenIcons[app.icon] ? app.icon : '';
     var kind = logo ? ' has-logo' : (icon ? ' has-icon' : '');
     var art;
-    if (logo) art = '<img class="tile-logo' + (app.light ? ' lit' : '') + '" alt="" src="' + escapeHtml(logo) + '">';
+    if (logo) {
+      // The brand's own colour, lit from inside the glass. Set inline because it is per-app.
+      art = '<span class="tile-glass" style="background-image:linear-gradient(180deg,' +
+            tint(app.accent, 0.34) + ' 0%,' + tint(app.accent, 0.10) + ' 58%,' +
+            tint(app.accent, 0.20) + ' 100%)"></span>' +
+            '<span class="tile-sheen"></span>' +
+            '<img class="tile-logo' + (app.light ? ' lit' : '') + '" alt="" src="' + escapeHtml(logo) + '">';
+    }
     else if (icon) art = '<img class="tile-icon" alt="" src="' + escapeHtml(icon) + '">';
     else art = washHtml(app);
     return '<div class="tile' + kind + (extra || '') + '">' + art +
@@ -269,22 +272,18 @@
 
   // Brass plaques on the end of the board. Guest Wi-Fi had no way in once its pill was removed;
   // this puts it back somewhere you can actually find it, without adding chrome to the screen.
-  var UTILS = [
-    { key: 'wifi', name: 'Guest Wi-Fi',
+  // Wi-Fi and All Apps are not tiles on the home screen any more. They live in a small menu
+  // that Up opens, so the dock stays nothing but the apps you actually watch.
+  var MENU = [
+    { key: 'wifi', name: 'Guest Wi-Fi', note: 'Show the QR code for guests',
       icon: '<path d="M3 9.5a16 16 0 0 1 22 0"/><path d="M7 14a10.5 10.5 0 0 1 14 0"/>' +
             '<path d="M10.8 18.4a5 5 0 0 1 6.4 0"/><circle cx="14" cy="22.6" r="1.7" class="sld"/>' },
-    { key: 'apps', name: 'All Apps',
+    { key: 'apps', name: 'All Apps', note: 'Everything installed on this TV',
       icon: '<rect x="3" y="3" width="9" height="9" rx="2.4"/><rect x="16" y="3" width="9" height="9" rx="2.4"/>' +
             '<rect x="3" y="16" width="9" height="9" rx="2.4"/><rect x="16" y="16" width="9" height="9" rx="2.4"/>' }
   ];
 
-  function utilHtml(u, focused) {
-    return '<div class="tile util' + (focused ? ' focused' : '') + '">' +
-      '<svg class="util-ico" viewBox="0 0 28 28" aria-hidden="true">' + u.icon + '</svg>' +
-      '<div class="util-name">' + escapeHtml(u.name) + '</div></div>';
-  }
-
-  function dockCount() { return state.dock.length + UTILS.length; }
+  function dockCount() { return state.dock.length; }
 
   function renderDock() {
     var html = '', i;
@@ -293,9 +292,6 @@
       var cls = '';
       if (!state.overlay && i === state.dockIndex) cls += ' focused' + (state.moving ? ' moving' : '');
       html += tileHtml(app, cls);
-    }
-    for (i = 0; i < UTILS.length; i++) {
-      html += utilHtml(UTILS[i], !state.overlay && !state.moving && state.dockIndex === state.dock.length + i);
     }
     $('dock').innerHTML = html;
     watchIcons($('dock'));
@@ -348,6 +344,7 @@
     $('overlay').className = 'overlay';
     $('sheet').className = kind === 'apps' ? 'sheet apps-sheet' : 'sheet';
     if (kind === 'apps') renderApps();
+    else if (kind === 'menu') renderMenu();
     else if (kind === 'wifi') renderWifi();
     else if (kind === 'wifiForm') renderWifiForm();
     renderDock();
@@ -435,6 +432,20 @@
     renderWifi();
   }
 
+  // The small secondary menu. Deliberately two rows and nothing else.
+  function renderMenu() {
+    var html = '<h2>Menu</h2><div class="menu-list">', i, m;
+    for (i = 0; i < MENU.length; i++) {
+      m = MENU[i];
+      html += '<div class="menu-row' + (i === state.sheetIndex ? ' focused' : '') + '">' +
+        '<svg class="menu-ico" viewBox="0 0 28 28" aria-hidden="true">' + m.icon + '</svg>' +
+        '<div class="menu-text"><div class="menu-name">' + escapeHtml(m.name) + '</div>' +
+        '<div class="menu-note">' + escapeHtml(m.note) + '</div></div></div>';
+    }
+    $('sheet').className = 'sheet menu-sheet';
+    $('sheet').innerHTML = html + '</div>';
+  }
+
   // All apps
   function renderApps() {
     var list = state.apps;
@@ -503,13 +514,9 @@
     // dock
     if (k === KEY.LEFT) state.dockIndex = Math.max(0, state.dockIndex - 1);
     else if (k === KEY.RIGHT) state.dockIndex = Math.min(dockCount() - 1, state.dockIndex + 1);
-    else if (k === KEY.UP) { openOverlay('apps'); return; }
+    else if (k === KEY.UP) { openOverlay('menu'); return; }
     else if (k === KEY.GREEN) { openOverlay('wifi'); return; }
     else if (k === KEY.ENTER) {
-      if (state.dockIndex >= state.dock.length) {
-        openOverlay(UTILS[state.dockIndex - state.dock.length].key);
-        return;
-      }
       if (!state.dock.length) { openOverlay('apps'); return; }
       launch(state.byKey[state.dock[state.dockIndex]]);
     } else if (k === KEY.YELLOW && state.dock.length && state.dockIndex < state.dock.length) {
@@ -535,6 +542,14 @@
   }
 
   function overlayKey(k) {
+    if (state.overlay === 'menu') {
+      if (isBack(k)) { closeOverlay(); return; }
+      if (k === KEY.UP) state.sheetIndex = Math.max(0, state.sheetIndex - 1);
+      else if (k === KEY.DOWN) state.sheetIndex = Math.min(MENU.length - 1, state.sheetIndex + 1);
+      else if (k === KEY.ENTER) { openOverlay(MENU[state.sheetIndex].key); return; }
+      renderMenu();
+      return;
+    }
     if (state.overlay === 'apps') {
       var n = state.apps.length, i = state.sheetIndex;
       if (isBack(k)) { $('sheet').className = 'sheet'; closeOverlay(); return; }
@@ -694,21 +709,32 @@
     var day = w.isDay !== 0;
     var hilo = '';
     if (typeof w.hi === 'number' && typeof w.lo === 'number') {
-      hilo = '<div class="wx-hilo"><span class="hi">' + Math.round(w.hi) + '&deg;</span>' +
-             '<span class="sep"></span><span class="lo">' + Math.round(w.lo) + '&deg;</span></div>';
+      hilo = '<div class="wx-hilo">H: ' + Math.round(w.hi) + '&deg;' +
+             '<span class="sep"></span>L: ' + Math.round(w.lo) + '&deg;</div>';
     }
-    el.className = 'weather wx-' + kind + (day ? ' is-day' : ' is-night-icon');
+    el.className = 'weather wx-' + kind + (day ? ' is-day' : ' is-dark');
     el.innerHTML =
-      '<div class="wx-plate">' +
-        '<div class="wx-icon">' + wxIcon(kind, day) + '</div>' +
-        '<div class="wx-read">' +
-          '<div class="wx-temp">' + Math.round(w.temp) + '<span class="deg">&deg;</span></div>' +
-          '<div class="wx-word">' + escapeHtml(WX_WORD[kind] || '') + '</div>' +
+      '<span class="chain l"></span><span class="chain r"></span>' +
+      '<div class="wx-sign">' +
+        '<div class="wx-city">' + escapeHtml(wxConfig().label || w.place || 'New York City') + '</div>' +
+        '<div class="wx-main">' +
+          '<span class="wx-icon">' + wxIcon(kind, day) + '</span>' +
+          '<span class="wx-temp">' + Math.round(w.temp) + '<span class="deg">&deg;</span></span>' +
         '</div>' +
+        '<div class="wx-word">' + escapeHtml(WX_WORD[kind] || '') + '</div>' +
         hilo +
-      '</div>' +
-      '<div class="wx-place">' + escapeHtml(w.place || 'New York') + '</div>';
+      '</div>';
     stageWeather(kind);
+  }
+
+  // Before the first reading lands.
+  function renderWeatherLoading() {
+    var el = wxNode();
+    if (!el || el.innerHTML) return;
+    el.className = 'weather wx-wait';
+    el.innerHTML = '<span class="chain l"></span><span class="chain r"></span>' +
+      '<div class="wx-sign"><div class="wx-city">New York City</div>' +
+      '<div class="wx-word">Checking the sky</div></div>';
   }
 
   // Shown only when there is no reading at all. Never a made-up temperature.
@@ -716,11 +742,9 @@
     var el = wxNode();
     if (!el) return;
     el.className = 'weather wx-off';
-    el.innerHTML =
-      '<div class="wx-plate">' +
-        '<div class="wx-read"><div class="wx-word">Weather unavailable</div></div>' +
-      '</div>' +
-      '<div class="wx-place">New York</div>';
+    el.innerHTML = '<span class="chain l"></span><span class="chain r"></span>' +
+      '<div class="wx-sign"><div class="wx-city">New York City</div>' +
+      '<div class="wx-word">Weather unavailable</div></div>';
   }
 
   // The backdrop takes a mood from the sky. Kept to one class so there is nothing to clean up.
@@ -752,7 +776,7 @@
 
   function wxConfig() {
     var c = window.HOME_WEATHER || {};
-    return { place: c.place || '', lat: c.lat, lon: c.lon,
+    return { place: c.place || '', label: c.label || '', lat: c.lat, lon: c.lon,
              units: c.units === 'celsius' ? 'celsius' : 'fahrenheit' };
   }
 
@@ -797,6 +821,7 @@
     if (!wxConfig().place && typeof wxConfig().lat !== 'number') return;
     var cached = load(LS_WX, null);
     if (cached) renderWeather(cached);          // show the last reading straight away
+    else renderWeatherLoading();
     refreshWeather();
     setInterval(refreshWeather, WX_EVERY);
   }
