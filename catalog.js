@@ -9,11 +9,11 @@
 // `shelf`  false keeps it out of the default shelf — still reachable from All apps.
 window.HOME_CATALOG = [
   { key: 'netflix',   name: 'Netflix',     match: '^netflix$',       accent: '#e50914', logo: 'netflix', ids: ['11101200001', 'org.tizen.netflix-app', '3201907018807'] },           // verified 11101200001
-  { key: 'prime',     name: 'Prime Video', match: '^prime video$',   accent: '#00a8e1', logo: 'prime', ids: ['3201512006785', 'org.tizen.primevideo', '3201910019365'] },          // verified 3201512006785
-  { key: 'disney',    name: 'Disney+',     match: '^disney\\+$',     accent: '#0a68f5', logo: 'disney', ids: ['MCmYXNxgcu.DisneyPlus', '3201901017640'] },                          // verified — note ^disney alone also caught DisneyNOW
+  { key: 'prime',     name: 'Prime Video', match: '^prime video$',   accent: '#00a8e1', logo: 'prime', light: true, ids: ['3201512006785', 'org.tizen.primevideo', '3201910019365'] },          // verified 3201512006785
+  { key: 'disney',    name: 'Disney+',     match: '^disney\\+$',     accent: '#0a68f5', logo: 'disney', light: true, ids: ['MCmYXNxgcu.DisneyPlus', '3201901017640'] },                          // verified — note ^disney alone also caught DisneyNOW
   { key: 'hulu',      name: 'Hulu',        match: '^hulu$',          accent: '#1ce783', logo: 'hulu', ids: ['3201601007625'] },                                                   // verified
-  { key: 'max',       name: 'Max',         match: '^(hbo ?)?max$',   accent: '#002be7', logo: 'max', ids: ['3202301029760', '3201601007230'] },                                  // verified both
-  { key: 'appletv',   name: 'Apple TV',    match: '^apple tv',       accent: '#d9d9de', logo: 'appletv', ids: ['3201807016597', 'com.samsung.tv.aria-video'] },                      // verified 3201807016597
+  { key: 'max',       name: 'Max',         match: '^(hbo ?)?max$',   accent: '#002be7', logo: 'max', light: true, ids: ['3202301029760', '3201601007230'] },                                  // verified both
+  { key: 'appletv',   name: 'Apple TV',    match: '^apple tv',       accent: '#d9d9de', logo: 'appletv', light: true, ids: ['3201807016597', 'com.samsung.tv.aria-video'] },                      // verified 3201807016597
   { key: 'youtube',   name: 'YouTube',     match: '^youtube$',       accent: '#ff0033', logo: 'youtube', ids: ['111299001912', '9Ur5IzDKqV.TizenYouTube'] },                         // verified both
   { key: 'youtubetv', name: 'YouTube TV',  match: '^youtube tv',     accent: '#ff0033', ids: ['3201707014489'] },                                                   // verified
   { key: 'tubi',      name: 'Tubi',        match: '^tubi',           accent: '#ff5a1f', ids: ['3201504001965'] },                                                   // verified
@@ -29,6 +29,12 @@ window.HOME_CATALOG = [
   { key: 'espn',      name: 'ESPN',        match: '^espn',           accent: '#e2231a', ids: [] },
   { key: 'twitch',    name: 'Twitch',      match: '^twitch',         accent: '#9146ff', ids: ['3202203026841'] }
 ];
+
+// Live weather, from Open-Meteo (no account, no API key).
+// `place` is looked up once and the coordinates remembered. Put your own town here.
+// Set lat/lon directly to skip the lookup, or clear `place` to hide the weather entirely.
+// units: 'fahrenheit' or 'celsius'.
+window.HOME_WEATHER = { place: 'Newark', units: 'fahrenheit' };
 
 // Your name for the greeting. Leave empty for just "Good evening".
 window.HOME_NAME = 'Aaron';

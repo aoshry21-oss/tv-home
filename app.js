@@ -10,6 +10,7 @@
   // shelf is rebuilt once rather than silently losing the entries whose keys no longer exist.
   var LS_DOCK = 'home.dock.v2';
   var LS_WIFI = 'home.wifi.v1';
+  var LS_WX = 'home.weather.v1';
   var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var HIDE_PREFIX = /^(org\.tizen\.|com\.samsung\.|samsung\.)/i;
@@ -77,6 +78,7 @@
     // if it ever fails to load we fall straight back to what the TV gave us.
     return { key: c.key, name: c.name, sub: c.sub || '', accent: c.accent, icon: iconUrl(info),
              logo: (c.logo && window.HOME_LOGOS) ? (window.HOME_LOGOS[c.logo] || '') : '',
+             light: c.light === true,   // a dark single-colour mark: show the brand's white variant
              shelf: c.shelf !== false,
              ids: (id ? [id] : []).concat(c.ids || []), installed: installed };
   }
@@ -203,7 +205,7 @@
     var icon = app.icon && !brokenIcons[app.icon] ? app.icon : '';
     var kind = logo ? ' has-logo' : (icon ? ' has-icon' : '');
     var art;
-    if (logo) art = washHtml(app) + '<img class="tile-logo" alt="" src="' + escapeHtml(logo) + '">';
+    if (logo) art = '<img class="tile-logo' + (app.light ? ' lit' : '') + '" alt="" src="' + escapeHtml(logo) + '">';
     else if (icon) art = '<img class="tile-icon" alt="" src="' + escapeHtml(icon) + '">';
     else art = washHtml(app);
     return '<div class="tile' + kind + (extra || '') + '">' + art +
@@ -522,6 +524,130 @@
     }
   }
 
+  // ---------- weather ----------
+  // Open-Meteo: no account, no API key, CORS open. The TV's CSP allows any connect-src, so this
+  // works from the packaged file:// page. The element is built here rather than in index.html,
+  // because index.html ships inside the .wgt and changing it would mean reinstalling.
+  var WX_API = 'https://api.open-meteo.com/v1/forecast';
+  var WX_GEO = 'https://geocoding-api.open-meteo.com/v1/search';
+  var WX_EVERY = 15 * 60 * 1000;
+
+  // WMO weather codes, grouped into the handful of states worth drawing.
+  function wxKind(code) {
+    if (code === 0) return 'clear';
+    if (code === 1 || code === 2) return 'partly';
+    if (code === 3) return 'cloud';
+    if (code === 45 || code === 48) return 'fog';
+    if (code >= 51 && code <= 57) return 'drizzle';
+    if (code >= 61 && code <= 67) return 'rain';
+    if (code >= 80 && code <= 82) return 'rain';
+    if (code >= 71 && code <= 77) return 'snow';
+    if (code === 85 || code === 86) return 'snow';
+    if (code >= 95) return 'storm';
+    return 'cloud';
+  }
+
+  var WX_WORD = { clear: 'Clear', partly: 'Partly cloudy', cloud: 'Cloudy', fog: 'Fog',
+                  drizzle: 'Drizzle', rain: 'Rain', snow: 'Snow', storm: 'Thunderstorms' };
+
+  function wxIcon(kind, isDay) {
+    var s = '<svg class="wx-svg" viewBox="0 0 48 48" width="46" height="46" aria-hidden="true">';
+    var sun = '<circle cx="18" cy="18" r="9" fill="#ffc266"/>';
+    var moon = '<path d="M26 8a12 12 0 1 0 12 12 9 9 0 0 1-12-12z" fill="#e8ddc4"/>';
+    var cloud = '<path d="M14 36h20a7 7 0 0 0 .6-14A10 10 0 0 0 15 24a6 6 0 0 0-1 12z" fill="#dfe8ea"/>';
+    if (kind === 'clear') return s + (isDay ? sun : moon) + '</svg>';
+    if (kind === 'partly') return s + (isDay ? '<circle cx="17" cy="16" r="8" fill="#ffc266"/>' : moon) + cloud + '</svg>';
+    if (kind === 'fog') return s + cloud + '<g stroke="#b9c7c9" stroke-width="3" stroke-linecap="round">' +
+      '<path d="M10 41h28"/><path d="M15 46h20"/></g></svg>';
+    if (kind === 'drizzle' || kind === 'rain') {
+      var n = kind === 'rain' ? 3 : 2, d = '', i;
+      for (i = 0; i < n; i++) d += '<path d="M' + (17 + i * 8) + ' 40v5"/>';
+      return s + cloud + '<g stroke="#7fc6ff" stroke-width="3" stroke-linecap="round">' + d + '</g></svg>';
+    }
+    if (kind === 'snow') return s + cloud +
+      '<g fill="#e6f4ff"><circle cx="18" cy="43" r="2.6"/><circle cx="26" cy="43" r="2.6"/><circle cx="34" cy="43" r="2.6"/></g></svg>';
+    if (kind === 'storm') return s + cloud + '<path d="M24 38l-6 8h5l-2 7 8-10h-5l3-5z" fill="#ffd34d"/></svg>';
+    return s + cloud + '</svg>';
+  }
+
+  function wxNode() {
+    var el = $('weather');
+    if (el) return el;
+    var block = document.querySelector('.time-block');
+    if (!block) return null;
+    el = document.createElement('div');
+    el.id = 'weather';
+    el.className = 'weather';
+    block.appendChild(el);
+    return el;
+  }
+
+  function renderWeather(w) {
+    var el = wxNode();
+    if (!el || !w) return;
+    var kind = wxKind(w.code);
+    el.innerHTML = wxIcon(kind, w.isDay !== 0) +
+      '<div class="wx-text"><div class="wx-temp">' + Math.round(w.temp) + '&deg;</div>' +
+      '<div class="wx-word">' + escapeHtml(WX_WORD[kind] || '') +
+      (w.place ? ' &nbsp;·&nbsp; ' + escapeHtml(w.place) : '') + '</div></div>';
+  }
+
+  function getJson(url, cb) {
+    var xhr, done = false, guard;
+    function finish(err, data) { if (done) return; done = true; window.clearTimeout(guard); cb(err, data); }
+    try { xhr = new XMLHttpRequest(); } catch (e) { return finish('no XHR'); }
+    guard = window.setTimeout(function () { try { xhr.abort(); } catch (e) {} finish('timeout'); }, 8000);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status < 200 || xhr.status >= 300) return finish('http ' + xhr.status);
+      try { finish(null, JSON.parse(xhr.responseText)); } catch (e) { finish('bad json'); }
+    };
+    try { xhr.open('GET', url, true); xhr.send(null); } catch (e) { finish('open failed'); }
+  }
+
+  function wxConfig() {
+    var c = window.HOME_WEATHER || {};
+    return { place: c.place || '', lat: c.lat, lon: c.lon,
+             units: c.units === 'celsius' ? 'celsius' : 'fahrenheit' };
+  }
+
+  function withCoords(cb) {
+    var c = wxConfig(), cached = load(LS_WX, null);
+    if (typeof c.lat === 'number' && typeof c.lon === 'number') return cb(c.lat, c.lon, c.place);
+    if (cached && cached.lat && cached.place === c.place) return cb(cached.lat, cached.lon, cached.label || c.place);
+    if (!c.place) return;
+    getJson(WX_GEO + '?name=' + encodeURIComponent(c.place) + '&count=1&language=en&format=json',
+      function (err, data) {
+        if (err || !data || !data.results || !data.results.length) return;
+        var r = data.results[0];
+        cb(r.latitude, r.longitude, r.name);
+      });
+  }
+
+  function refreshWeather() {
+    var c = wxConfig();
+    withCoords(function (lat, lon, label) {
+      getJson(WX_API + '?latitude=' + lat + '&longitude=' + lon +
+              '&current=temperature_2m,weather_code,is_day&temperature_unit=' + c.units +
+              '&timezone=auto', function (err, data) {
+        if (err || !data || !data.current) return;     // keep whatever is on screen
+        var w = { temp: data.current.temperature_2m, code: data.current.weather_code,
+                  isDay: data.current.is_day, place: label, lat: lat, lon: lon,
+                  label: label, at: (new Date()).getTime() };
+        save(LS_WX, w);
+        renderWeather(w);
+      });
+    });
+  }
+
+  function startWeather() {
+    if (!wxConfig().place && typeof wxConfig().lat !== 'number') return;
+    var cached = load(LS_WX, null);
+    if (cached) renderWeather(cached);          // show the last reading straight away
+    refreshWeather();
+    setInterval(refreshWeather, WX_EVERY);
+  }
+
   // ---------- start ----------
   function registerKeys() {
     if (!window.tizen || !window.tizen.tvinputdevice) return;
@@ -531,11 +657,21 @@
     }
   }
 
+  // The backdrop is a data URI from theme.js; the TV's CSP will not load one over https.
+  function applyTheme() {
+    var t = window.HOME_THEME;
+    if (!t || !t.background) return;
+    var stage = $('stage');
+    if (stage) stage.style.backgroundImage = 'url("' + t.background + '")';
+  }
+
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) { tick(); discover(); }
+    if (!document.hidden) { tick(); discover(); refreshWeather(); }
   });
   registerKeys();
+  applyTheme();
+  startWeather();
   tick();
   setInterval(tick, 10000);
   discover();

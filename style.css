@@ -28,15 +28,24 @@ html, body {
   cursor: none;
 }
 
+/* The artwork is set from theme.js as an inline background-image. */
 #stage {
   position: absolute;
   left: 0; top: 0;
   width: 1920px; height: 1080px;
-  background:
-    radial-gradient(1100px 760px at 12% 8%, rgba(201, 162, 122, 0.16), rgba(201, 162, 122, 0) 62%),
-    radial-gradient(900px 600px at 90% 105%, rgba(120, 72, 40, 0.30), rgba(120, 72, 40, 0) 60%),
-    linear-gradient(165deg, #1e160f 0%, #140e0b 55%, #0f0b08 100%);
+  background-color: #0f0b08;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
+/* The art is busy and bright in places, so the clock and the shelf each get a scrim to sit on.
+   Without these the white type disappears over the neon signs. */
+#stage:before, #stage:after {
+  content: ''; position: absolute; left: 0; right: 0; pointer-events: none;
+}
+#stage:before { top: 0; height: 520px; background: linear-gradient(180deg, rgba(6, 10, 14, 0.80) 0%, rgba(6, 10, 14, 0.38) 55%, rgba(6, 10, 14, 0) 100%); }
+#stage:after { bottom: 0; height: 560px; background: linear-gradient(0deg, rgba(6, 10, 14, 0.88) 0%, rgba(6, 10, 14, 0.55) 45%, rgba(6, 10, 14, 0) 100%); }
+.top, .shelf-area { position: absolute; z-index: 2; }
 
 /* ---------- Top: clock + pills ---------- */
 .top {
@@ -75,19 +84,16 @@ html, body {
 
 .shelf {
   margin: 18px 96px 0;
-  padding: 34px 24px;
+  padding: 30px 24px;
   border-radius: 34px;
-  background:
-    repeating-linear-gradient(92deg, rgba(255, 236, 214, 0.018) 0px, rgba(255, 236, 214, 0.018) 2px, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0) 11px),
-    linear-gradient(180deg, #3b2a1f 0%, #2c2017 55%, #241a13 100%);
-  border-top: 1px solid rgba(255, 230, 200, 0.12);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45), inset 0 -6px 18px rgba(0, 0, 0, 0.25);
+  background: rgba(8, 12, 16, 0.38);
+  border-top: 1px solid rgba(255, 236, 214, 0.10);
 }
 .dock { display: flex; justify-content: center; height: 150px; }
 
 .tile {
   position: relative;
-  width: 222px; height: 150px;
+  width: 236px; height: 156px;
   margin: 0 12px;
   border-radius: 24px;
   background: var(--tile);
@@ -114,19 +120,28 @@ html, body {
 }
 .tile.focused .tile-name { color: #1a120d; text-shadow: none; }
 .tile.focused .tile-sub { color: #6b4a33; }
-/* Our own brand marks. They go on a light plate because several of the official logos are dark
-   on transparent — Apple's is #0d0d0d, Disney's navy, Max's black — and would vanish on the dark
-   tile. A plate also makes every tile the same shape and weight, which the TV's own icons never
-   are: some ship as full-bleed banners, others as a small mark floating in space. */
-.tile.has-logo { background: linear-gradient(180deg, #faf6ef 0%, #e8dfd0 100%); border-color: rgba(0, 0, 0, 0.12); }
-.tile-logo { position: relative; width: 68%; height: 54%; object-fit: contain; -o-object-fit: contain; }
-.tile.has-logo .tile-wash { opacity: 0.16; }                 /* a hint of the brand, not a tint over the logo */
-.tile.has-logo .tile-name, .tile.has-logo .tile-sub { display: none; }
-.tile.has-logo .tile-accent { opacity: 1; }
-/* The plate is already light, so focus is a lift and a ring rather than a colour change. */
-.tile.has-logo.focused { background: linear-gradient(180deg, #ffffff 0%, #f2ebdf 100%); box-shadow: 0 0 0 5px var(--beige), 0 26px 50px rgba(0, 0, 0, 0.55); }
-.tile.has-logo.focused .tile-wash { display: block; opacity: 0.1; }
-.tile.has-logo.moving { box-shadow: 0 0 0 5px var(--brass), 0 30px 60px rgba(0, 0, 0, 0.6); }
+/* Spotlight: our own brand marks laid straight on the artwork, no plate and no box. The selected
+   one comes up to full strength and throws a glow; the rest sit back. */
+.tile.has-logo { background: none; border: 0; box-shadow: none; }
+.tile-logo {
+  position: relative; width: 84%; height: 62%;
+  object-fit: contain; -o-object-fit: contain;
+  opacity: 0.52;
+  -webkit-filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.75));
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.75));
+  -webkit-transition: opacity 170ms ease-out; transition: opacity 170ms ease-out;
+}
+/* Prime Video, Disney+, Max and Apple TV ship as one dark colour and disappear against the art.
+   Each of those brands publishes a white version for dark backgrounds, which is what this is. */
+.tile-logo.lit { -webkit-filter: brightness(0) invert(1) drop-shadow(0 6px 16px rgba(0, 0, 0, 0.8));
+                 filter: brightness(0) invert(1) drop-shadow(0 6px 16px rgba(0, 0, 0, 0.8)); }
+.tile.has-logo .tile-name, .tile.has-logo .tile-sub, .tile.has-logo .tile-accent { display: none; }
+.tile.has-logo.focused {
+  background: none; box-shadow: none;
+  -webkit-transform: scale(1.20); transform: scale(1.20);
+}
+.tile.has-logo.focused .tile-logo { opacity: 1; }
+.tile.has-logo.moving { -webkit-transform: translateY(-20px) scale(1.20); transform: translateY(-20px) scale(1.20); }
 
 /* The TV's own icons, used for anything we have no mark for.
    `contain`, not `cover` — app icons are square and `cover` crops the top and bottom off them. */
@@ -211,3 +226,10 @@ html, body {
   border-radius: 20px; background: rgba(239, 228, 210, 0.95); color: #1a120d;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
+
+/* ---------- Live weather (the node is built by app.js, not index.html) ---------- */
+.weather { display: flex; align-items: center; margin-top: 22px; }
+.wx-svg { display: block; margin-right: 16px; }
+.wx-text { line-height: 1.1; }
+.wx-temp { font-size: 52px; font-weight: 200; letter-spacing: -1px; }
+.wx-word { font-size: 24px; font-weight: 300; color: var(--beige-dim); margin-top: 2px; }
