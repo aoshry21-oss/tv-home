@@ -43,14 +43,39 @@
 
   // ---------- clock ----------
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  // Ticks every second so the minute never lags, but each piece is only written when its text
+  // actually changes — rewriting the clock 60 times a minute makes it shimmer on a TV panel.
+  var lastGreet = '', lastClock = '', lastDate = '';
+
   function tick() {
     var d = new Date();
     var h = d.getHours();
-    var part = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-    $('greeting').textContent = window.HOME_NAME ? part + ', ' + window.HOME_NAME : part;
+    var part = h < 5 ? 'Good Night' : h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+    var greet = window.HOME_NAME ? part + ', ' + window.HOME_NAME : part;
+    if (greet !== lastGreet) { $('greeting').textContent = greet; lastGreet = greet; }
+
     var h12 = h % 12; if (h12 === 0) h12 = 12;
-    $('clock').textContent = h12 + ':' + pad(d.getMinutes());
-    $('date').textContent = DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate();
+    var face = h12 + ':' + pad(d.getMinutes());
+    var mer = h < 12 ? 'AM' : 'PM';
+    if (face + mer !== lastClock) {
+      $('clock').innerHTML = escapeHtml(face) + '<span class="meridiem">' + mer + '</span>';
+      lastClock = face + mer;
+    }
+
+    var ds = DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate();
+    if (ds !== lastDate) { $('date').textContent = ds; lastDate = ds; }
+
+    stageClass('is-night', h < 6 || h >= 18);
+  }
+
+  // The backdrop carries mood classes: night, and whatever the sky is doing.
+  function stageClass(name, on) {
+    var stage = $('stage');
+    if (!stage) return;
+    var padded = ' ' + stage.className + ' ';
+    var has = padded.indexOf(' ' + name + ' ') !== -1;
+    if (on && !has) stage.className = (stage.className + ' ' + name).replace(/^\s+/, '');
+    else if (!on && has) stage.className = padded.replace(' ' + name + ' ', ' ').replace(/^\s+|\s+$/g, '');
   }
 
   // ---------- toast ----------
@@ -295,18 +320,20 @@
     pillsBuilt = true;
   }
 
+  // The pills are off the home screen. Both are still reachable: Up opens All apps, Green opens
+  // the guest Wi-Fi code. Nothing was removed, only the clutter that announced it.
   function renderPills() {
-    buildPills();
-    var pills = $('pills').children;
-    for (var i = 0; i < pills.length; i++) {
-      pills[i].className = 'pill p' + i + (!state.overlay && state.zone === 'top' && state.topIndex === i ? ' focused' : '');
-    }
+    var p = $('pills');
+    if (p) p.className = 'pills hidden';
   }
 
+  // The hint line is gone from the home screen. It still says something while you are actually
+  // rearranging, because that mode has no other affordance; the rest of the time it is empty.
   function renderHint() {
     var h = $('hint');
-    if (state.moving) h.innerHTML = '&#9664; &#9654; move &nbsp;·&nbsp; Red remove from shelf &nbsp;·&nbsp; OK done';
-    else h.innerHTML = 'OK open &nbsp;·&nbsp; Yellow rearrange &nbsp;·&nbsp; Up for Wi-Fi and all apps';
+    if (!h) return;
+    h.innerHTML = state.moving ? '&#9664; &#9654; move &nbsp;·&nbsp; Red removes &nbsp;·&nbsp; OK done' : '';
+    h.className = state.moving ? 'hint showing' : 'hint';
   }
 
   // ---------- overlays ----------
@@ -442,6 +469,7 @@
 
   function onKey(e) {
     var k = e.keyCode;
+    if (wokeFromAmbient) { wokeFromAmbient = false; e.preventDefault(); return; }
     // Desktop preview: letters stand in for the colour buttons.
     if (!tizenApi) {
       if (e.key === 'y') k = KEY.YELLOW;
@@ -462,24 +490,16 @@
     if (state.moving) return moveKey(k);
 
     if (isBack(k)) {
-      if (state.zone === 'top') { state.zone = 'dock'; renderDock(); return; }
+      if (state.moving) { state.moving = false; renderDock(); return; }
       if (tizenApi) { try { tizenApi.application.getCurrentApplication().hide(); } catch (err) { /* ignore */ } }
-      return;
-    }
-
-    if (state.zone === 'top') {
-      if (k === KEY.LEFT) state.topIndex = Math.max(0, state.topIndex - 1);
-      else if (k === KEY.RIGHT) state.topIndex = Math.min(1, state.topIndex + 1);
-      else if (k === KEY.DOWN) state.zone = 'dock';
-      else if (k === KEY.ENTER) { openOverlay(state.topIndex === 0 ? 'wifi' : 'apps'); return; }
-      renderDock();
       return;
     }
 
     // dock
     if (k === KEY.LEFT) state.dockIndex = Math.max(0, state.dockIndex - 1);
     else if (k === KEY.RIGHT) state.dockIndex = Math.min(state.dock.length - 1, state.dockIndex + 1);
-    else if (k === KEY.UP) state.zone = 'top';
+    else if (k === KEY.UP) { openOverlay('apps'); return; }
+    else if (k === KEY.GREEN) { openOverlay('wifi'); return; }
     else if (k === KEY.ENTER) {
       if (!state.dock.length) { openOverlay('apps'); return; }
       launch(state.byKey[state.dock[state.dockIndex]]);
@@ -575,38 +595,72 @@
   var WX_WORD = { clear: 'Clear', partly: 'Partly Sun', cloud: 'Cloudy', fog: 'Fog',
                   drizzle: 'Drizzle', rain: 'Rain', snow: 'Snow', storm: 'Storms' };
 
-  // A sun with rays, built in a loop so the spokes stay evenly spaced.
-  function sunHtml(cx, cy, r, rays) {
-    var out = '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 4) + '" fill="#ffd255" opacity=".20"/>' +
-              '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#ffd255"/>';
-    if (!rays) return out;
-    var i, a, x1, y1, x2, y2;
-    for (i = 0; i < 8; i++) {
-      a = i * Math.PI / 4;
-      x1 = cx + Math.cos(a) * (r + 5.5); y1 = cy + Math.sin(a) * (r + 5.5);
-      x2 = cx + Math.cos(a) * (r + 10);  y2 = cy + Math.sin(a) * (r + 10);
-      out += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) +
-             '" y2="' + y2.toFixed(1) + '" stroke="#ffd255" stroke-width="3.2" stroke-linecap="round"/>';
+  // Dimensional weather parts. Each is built from gradients rather than flat fills so they
+  // read as little sculpted objects, which is what the Ratropolis signage calls for.
+  var WX_DEFS =
+    '<defs>' +
+      '<radialGradient id="gSun" cx="36%" cy="30%">' +
+        '<stop offset="0" stop-color="#fff3c0"/><stop offset="55%" stop-color="#ffc83d"/>' +
+        '<stop offset="100%" stop-color="#e8870f"/></radialGradient>' +
+      '<linearGradient id="gCloud" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#f4fbff"/><stop offset="55%" stop-color="#cdddea"/>' +
+        '<stop offset="100%" stop-color="#9fb6c9"/></linearGradient>' +
+      '<linearGradient id="gCloudDark" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#bcc9d8"/><stop offset="100%" stop-color="#6d8197"/></linearGradient>' +
+      '<linearGradient id="gMoon" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#fffaf0"/><stop offset="100%" stop-color="#d9c89c"/></linearGradient>' +
+    '</defs>';
+
+  // A sun with rays, built in a loop so the spokes stay evenly spaced. The rays are their own
+  // group so CSS can turn them slowly without moving the disc.
+  function sunHtml(cx, cy, r) {
+    var rays = '', i, a, x1, y1, x2, y2;
+    for (i = 0; i < 12; i++) {
+      a = i * Math.PI / 6;
+      x1 = cx + Math.cos(a) * (r + 4.5); y1 = cy + Math.sin(a) * (r + 4.5);
+      x2 = cx + Math.cos(a) * (r + (i % 2 ? 8 : 11));
+      y2 = cy + Math.sin(a) * (r + (i % 2 ? 8 : 11));
+      rays += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) +
+              '" y2="' + y2.toFixed(1) + '" stroke="#ffc83d" stroke-width="2.8" stroke-linecap="round"/>';
     }
-    return out;
+    return '<g class="wx-sun-rays" style="-webkit-transform-origin:' + cx + 'px ' + cy + 'px;' +
+           'transform-origin:' + cx + 'px ' + cy + 'px">' + rays + '</g>' +
+           '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 3) + '" fill="#ffc83d" opacity=".18"/>' +
+           '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="url(#gSun)"/>' +
+           '<ellipse cx="' + (cx - r * 0.3) + '" cy="' + (cy - r * 0.38) + '" rx="' + (r * 0.34) +
+           '" ry="' + (r * 0.24) + '" fill="#fff8d8" opacity=".55"/>';
   }
 
   function wxIcon(kind, isDay) {
-    var s = '<svg class="wx-svg" viewBox="0 0 48 48" aria-hidden="true">';
-    var moon = '<path d="M26 8a12 12 0 1 0 12 12 9 9 0 0 1-12-12z" fill="#f2e7cd"/>';
-    var cloud = '<path d="M14 36h20a7 7 0 0 0 .6-14A10 10 0 0 0 15 24a6 6 0 0 0-1 12z" fill="#dfe8ea"/>';
-    if (kind === 'clear') return s + (isDay ? sunHtml(24, 23, 11, true) : moon) + '</svg>';
-    if (kind === 'partly') return s + (isDay ? sunHtml(17, 15, 8, true) : moon) + cloud + '</svg>';
-    if (kind === 'fog') return s + cloud + '<g stroke="#b9c7c9" stroke-width="3" stroke-linecap="round">' +
-      '<path d="M10 41h28"/><path d="M15 46h20"/></g></svg>';
+    var s = '<svg class="wx-svg" viewBox="0 0 48 48" aria-hidden="true">' + WX_DEFS;
+    var moon = '<path d="M27 7a13 13 0 1 0 11.6 11.6A9.6 9.6 0 0 1 27 7z" fill="url(#gMoon)"/>' +
+               '<circle cx="31" cy="26" r="2.2" fill="#cdb98c" opacity=".55"/>' +
+               '<circle cx="21" cy="17" r="1.5" fill="#cdb98c" opacity=".45"/>';
+    var cloud = '<path d="M13 37h21a7.5 7.5 0 0 0 .7-15A10.5 10.5 0 0 0 14 23.5 6.4 6.4 0 0 0 13 37z" fill="url(#gCloud)"/>' +
+                '<path d="M13 37h21a7.5 7.5 0 0 0 3.6-1.2H14.2z" fill="#8ea6ba" opacity=".5"/>';
+    var dark  = '<path d="M13 37h21a7.5 7.5 0 0 0 .7-15A10.5 10.5 0 0 0 14 23.5 6.4 6.4 0 0 0 13 37z" fill="url(#gCloudDark)"/>';
+    if (kind === 'clear') return s + (isDay ? sunHtml(24, 23, 11) : moon) + '</svg>';
+    if (kind === 'partly') return s + (isDay ? sunHtml(16, 14, 7.5) : moon) + cloud + '</svg>';
+    if (kind === 'fog') return s + cloud +
+      '<g stroke="#b9c7c9" stroke-width="2.8" stroke-linecap="round" opacity=".8">' +
+      '<path d="M11 42h26"/><path d="M16 46.5h17"/></g></svg>';
     if (kind === 'drizzle' || kind === 'rain') {
       var n = kind === 'rain' ? 3 : 2, d = '', i;
-      for (i = 0; i < n; i++) d += '<path d="M' + (17 + i * 8) + ' 40v5"/>';
-      return s + cloud + '<g stroke="#7fc6ff" stroke-width="3" stroke-linecap="round">' + d + '</g></svg>';
+      for (i = 0; i < n; i++) {
+        d += '<path class="wx-drop" d="M' + (17 + i * 7) + ' 40c1.6 2.2 2.4 3.4 2.4 4.3a2.4 2.4 0 0 1-4.8 0c0-.9.8-2.1 2.4-4.3z" fill="#6fc4ff"/>';
+      }
+      return s + cloud + d + '</svg>';
     }
-    if (kind === 'snow') return s + cloud +
-      '<g fill="#e6f4ff"><circle cx="18" cy="43" r="2.6"/><circle cx="26" cy="43" r="2.6"/><circle cx="34" cy="43" r="2.6"/></g></svg>';
-    if (kind === 'storm') return s + cloud + '<path d="M24 38l-6 8h5l-2 7 8-10h-5l3-5z" fill="#ffd34d"/></svg>';
+    if (kind === 'snow') {
+      var f = '', j;
+      for (j = 0; j < 3; j++) {
+        f += '<g class="wx-flake" transform="translate(' + (16 + j * 8) + ',43)">' +
+             '<path d="M0 -3.4V3.4M-3 -1.7L3 1.7M-3 1.7L3 -1.7" stroke="#eaf6ff" stroke-width="1.7" stroke-linecap="round"/></g>';
+      }
+      return s + cloud + f + '</svg>';
+    }
+    if (kind === 'storm') return s + dark +
+      '<path class="wx-bolt" d="M25 37l-7 9h5.2l-2.2 8 9.5-11h-5.6l3.1-6z" fill="#ffd34d" stroke="#e8870f" stroke-width="1"/></svg>';
     return s + cloud + '</svg>';
   }
 
@@ -626,9 +680,50 @@
     var el = wxNode();
     if (!el || !w) return;
     var kind = wxKind(w.code);
-    el.innerHTML = wxIcon(kind, w.isDay !== 0) +
-      '<div class="wx-text"><div class="wx-temp">' + Math.round(w.temp) + '&deg;</div>' +
-      '<div class="wx-word">' + escapeHtml(WX_WORD[kind] || '') + '</div></div>';
+    var day = w.isDay !== 0;
+    var hilo = '';
+    if (typeof w.hi === 'number' && typeof w.lo === 'number') {
+      hilo = '<div class="wx-hilo"><span class="hi">' + Math.round(w.hi) + '&deg;</span>' +
+             '<span class="sep"></span><span class="lo">' + Math.round(w.lo) + '&deg;</span></div>';
+    }
+    el.className = 'weather wx-' + kind + (day ? ' is-day' : ' is-night-icon');
+    el.innerHTML =
+      '<div class="wx-plate">' +
+        '<div class="wx-icon">' + wxIcon(kind, day) + '</div>' +
+        '<div class="wx-read">' +
+          '<div class="wx-temp">' + Math.round(w.temp) + '<span class="deg">&deg;</span></div>' +
+          '<div class="wx-word">' + escapeHtml(WX_WORD[kind] || '') + '</div>' +
+        '</div>' +
+        hilo +
+      '</div>' +
+      '<div class="wx-place">' + escapeHtml(w.place || 'New York') + '</div>';
+    stageWeather(kind);
+  }
+
+  // Shown only when there is no reading at all. Never a made-up temperature.
+  function renderWeatherUnavailable() {
+    var el = wxNode();
+    if (!el) return;
+    el.className = 'weather wx-off';
+    el.innerHTML =
+      '<div class="wx-plate">' +
+        '<div class="wx-read"><div class="wx-word">Weather unavailable</div></div>' +
+      '</div>' +
+      '<div class="wx-place">New York</div>';
+  }
+
+  // The backdrop takes a mood from the sky. Kept to one class so there is nothing to clean up.
+  var stageMood = '';
+  function stageWeather(kind) {
+    var mood = (kind === 'rain' || kind === 'drizzle') ? 'sky-rain'
+             : (kind === 'snow') ? 'sky-snow'
+             : (kind === 'storm') ? 'sky-storm'
+             : (kind === 'cloud' || kind === 'fog') ? 'sky-cloud'
+             : 'sky-clear';
+    if (mood === stageMood) return;
+    if (stageMood) stageClass(stageMood, false);
+    stageClass(mood, true);
+    stageMood = mood;
   }
 
   function getJson(url, cb) {
@@ -667,12 +762,20 @@
     var c = wxConfig();
     withCoords(function (lat, lon, label) {
       getJson(WX_API + '?latitude=' + lat + '&longitude=' + lon +
-              '&current=temperature_2m,weather_code,is_day&temperature_unit=' + c.units +
-              '&timezone=auto', function (err, data) {
-        if (err || !data || !data.current) return;     // keep whatever is on screen
+              '&current=temperature_2m,weather_code,is_day' +
+              '&daily=temperature_2m_max,temperature_2m_min&forecast_days=1' +
+              '&temperature_unit=' + c.units + '&timezone=auto', function (err, data) {
+        if (err || !data || !data.current) {
+          // Never invent a reading: keep the last good one, or say so plainly.
+          if (!load(LS_WX, null)) renderWeatherUnavailable();
+          return;
+        }
+        var daily = data.daily || {};
         var w = { temp: data.current.temperature_2m, code: data.current.weather_code,
-                  isDay: data.current.is_day, place: label, lat: lat, lon: lon,
-                  label: label, at: (new Date()).getTime() };
+                  isDay: data.current.is_day, place: label, lat: lat, lon: lon, label: label,
+                  hi: (daily.temperature_2m_max || [])[0],
+                  lo: (daily.temperature_2m_min || [])[0],
+                  at: (new Date()).getTime() };
         save(LS_WX, w);
         renderWeather(w);
       });
@@ -685,6 +788,30 @@
     if (cached) renderWeather(cached);          // show the last reading straight away
     refreshWeather();
     setInterval(refreshWeather, WX_EVERY);
+  }
+
+  // ---------- ambient mode ----------
+  // After half a minute untouched the dock fades out and the city is left alone. Any key brings
+  // it straight back, with the same app still selected.
+  var AMBIENT_AFTER = 30000;
+  var ambientTimer = null;
+  var ambient = false;
+
+  function setAmbient(on) {
+    if (ambient === on) return;
+    ambient = on;
+    var h = document.documentElement;
+    if (on) h.className = (h.className + ' ambient').replace(/^\s+/, '');
+    else h.className = (' ' + h.className + ' ').replace(' ambient ', ' ').replace(/^\s+|\s+$/g, '');
+  }
+
+  var wokeFromAmbient = false;
+
+  function nudgeAmbient() {
+    if (ambient) wokeFromAmbient = true;
+    setAmbient(false);
+    window.clearTimeout(ambientTimer);
+    ambientTimer = window.setTimeout(function () { setAmbient(true); }, AMBIENT_AFTER);
   }
 
   // ---------- start ----------
@@ -725,23 +852,49 @@
     h.className = h.className ? h.className + ' has-clockface' : 'has-clockface';
   }
 
+  // Atmosphere sits between the artwork and the interface: a canal sheen that always breathes,
+  // plus rain/snow/warmth layers that fade in with the real forecast. Built here because
+  // index.html ships inside the .wgt.
+  function buildAtmosphere() {
+    var stage = $('stage');
+    if (!stage || $('sky')) return;
+    var names = ['canal', 'warm', 'cool', 'rain', 'snow'], i, d;
+    for (i = 0; i < names.length; i++) {
+      d = document.createElement('div');
+      d.className = 'sky-layer ' + names[i];
+      if (i === 0) d.id = 'sky';
+      stage.insertBefore(d, stage.firstChild);
+    }
+  }
+
   // The backdrop is a data URI from theme.js; the TV's CSP will not load one over https.
   function applyTheme() {
     var t = window.HOME_THEME;
     if (!t || !t.background) return;
     var stage = $('stage');
-    if (stage) stage.style.backgroundImage = 'url("' + t.background + '")';
+    if (!stage) return;
+    // Decode first, then paint: setting it straight on the element shows a half-drawn image.
+    var img = new Image();
+    img.onload = function () {
+      stage.style.backgroundImage = 'url("' + t.background + '")';
+      stageClass('art-ready', true);
+    };
+    img.onerror = function () { stageClass('art-ready', true); };
+    img.src = t.background;
   }
 
-  document.addEventListener('keydown', onKey);
+  document.addEventListener('keydown', nudgeAmbient, true);   // before onKey, so the first
+  document.addEventListener('keydown', onKey);                // press only wakes the dock
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) { tick(); discover(); refreshWeather(); }
   });
   registerKeys();
+  nudgeAmbient();
+  buildAtmosphere();
   applyFont();
   applyTheme();
   startWeather();
   tick();
-  setInterval(tick, 10000);
+  setInterval(tick, 1000);
   discover();
 })();
